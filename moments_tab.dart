@@ -19,7 +19,7 @@ class TokiMomentsTab extends StatefulWidget {
 }
 
 class _TokiMomentsTabState extends State<TokiMomentsTab> {
-  int _subTab = 0; // 0 = Recommend, 1 = New users
+  int _subTab = 0;
   String _selectedTopic = 'All';
 
   final List<String> _topics = const [
