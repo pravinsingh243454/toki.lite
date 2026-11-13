@@ -1,7 +1,5 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'room_screen.dart';
-import 'moments_tab.dart';
-import 'chat_screen.dart';
 
 void main() {
   runApp(const TokiLiteApp());
@@ -32,9 +30,9 @@ class TokiMainShell extends StatefulWidget {
 }
 
 class _TokiMainShellState extends State<TokiMainShell> {
-  int _tabIndex = 2; // Opens directly on Toki Rooms screen
-  int _roomFilter = 0; // 0: Recommend, 1: Video, 2: New, 3: Me
+  int _tabIndex = 0; // Starts on Home tab
   int _homeFilter = 0;
+  int _roomFilter = 0;
   int _coins = 500;
   int _selectedAvatar = 0;
   bool _searching = false;
@@ -61,7 +59,8 @@ class _TokiMainShellState extends State<TokiMainShell> {
       'bio': 'Singing & late night gossips 🎶',
       'emoji': '🌸',
       'bg': 0xFFF48FB1,
-      'room': 'welcome_everyone',
+      'roomId': 'welcome_everyone',
+      'roomTitle': 'welcome everyone 🎶',
       'isNew': false,
       'featured': true,
     },
@@ -72,7 +71,8 @@ class _TokiMainShellState extends State<TokiMainShell> {
       'bio': 'Ludo King champion! Aao khelte hain 🎲',
       'emoji': '🎧',
       'bg': 0xFF90CAF9,
-      'room': 'sb_agency_14',
+      'roomId': 'sb_agency_14',
+      'roomTitle': 'SB AGENCY 14 🏵️',
       'isNew': true,
       'featured': true,
     },
@@ -83,9 +83,33 @@ class _TokiMainShellState extends State<TokiMainShell> {
       'bio': 'Shayari & dosti party room ❤️',
       'emoji': '👑',
       'bg': 0xFFCE93D8,
-      'room': 'dwarka_nath',
+      'roomId': 'dwarka_nath',
+      'roomTitle': '🙏 Dwarka Nath ✓✓✓✓',
       'isNew': true,
       'featured': false,
+    },
+  ];
+
+  final List _moments = [
+    {
+      'name': 'Riya Sharma',
+      'emoji': '🌸',
+      'bg': 0xFFF48FB1,
+      'time': '2m ago',
+      'tag': '#LateNightMusic',
+      'text': 'Aaj raat party room mein gaane aur masti hogi! Sabhi dost aao 🎙️🎶',
+      'likes': 48,
+      'liked': false,
+    },
+    {
+      'name': 'Aarav Singh',
+      'emoji': '🎧',
+      'bg': 0xFF90CAF9,
+      'time': '15m ago',
+      'tag': '#LudoKing',
+      'text': 'Ludo race mein kaun mujhe hara sakta hai? Aao room mein challenge karo 🎲🔥',
+      'likes': 31,
+      'liked': false,
     },
   ];
 
@@ -155,29 +179,18 @@ class _TokiMainShellState extends State<TokiMainShell> {
       'cat': 'New',
       'isMine': false,
     },
-    {
-      'title': 'R 🙏 😃 🏵️',
-      'id': 'r_room',
-      'subtitle': 'Dil se dosti ❤️ ap ayiye th...',
-      'badge': 'Social',
-      'views': '18',
-      'emoji': '💐',
-      'bg1': 0xFFC8E6C9,
-      'bg2': 0xFF81C784,
-      'badgeColor': 0xFF00C853,
-      'cat': 'Recommend',
-      'isMine': false,
-    },
   ];
 
   final List _chats = [
     {
       'name': 'Riya Sharma',
+      'emoji': '🌸',
       'msg': 'Hi! Party room mein aao na 🎙️',
       'time': 'Just now',
     },
     {
       'name': 'Toki Official',
+      'emoji': '👑',
       'msg': 'Welcome to toki.lite! 500 Free Coins mile 🎉',
       'time': 'Today',
     },
@@ -203,6 +216,26 @@ class _TokiMainShellState extends State<TokiMainShell> {
           userName: myName,
           userEmoji: _avatars[_selectedAvatar]['emoji'].toString(),
           userBg: _avatars[_selectedAvatar]['bg'] as int,
+          coins: _coins,
+          onCoinsChanged: (newCoins) {
+            setState(() => _coins = newCoins);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openChat(String name, String emoji, String roomId, String roomTitle) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PrivateChatScreen(
+          peerName: name,
+          peerEmoji: emoji,
+          onJoinVoiceRoom: () {
+            Navigator.pop(context);
+            _enterRoom(roomId, roomTitle);
+          },
         ),
       ),
     );
@@ -210,24 +243,70 @@ class _TokiMainShellState extends State<TokiMainShell> {
 
   void _sayHiToUser(Map u) {
     final name = u['name'].toString();
+    final emoji = u['emoji'].toString();
     setState(() {
       _chats.insert(0, {
         'name': name,
+        'emoji': emoji,
         'msg': '👋 Aapne Hi bheja! Tap karke chat karein',
         'time': 'Now',
       });
     });
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PrivateChatScreen(
-          peerName: name,
-          peerEmoji: '🌸',
-          onJoinVoiceRoom: () {
-            Navigator.pop(context);
-            _enterRoom(u['room'].toString(), name);
-          },
+    _openChat(
+      name,
+      emoji,
+      u['roomId'].toString(),
+      u['roomTitle'].toString(),
+    );
+  }
+
+  void _createMomentDialog() {
+    final postCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('🪐 Post New Moment'),
+        content: TextField(
+          controller: postCtrl,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Apne dil ki baat ya shayari likhein...',
+            border: OutlineInputBorder(),
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF7A30),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final text = postCtrl.text.trim();
+              if (text.isNotEmpty) {
+                setState(() {
+                  _moments.insert(0, {
+                    'name': _nameController.text.trim().isEmpty
+                        ? 'Pravin'
+                        : _nameController.text.trim(),
+                    'emoji': _avatars[_selectedAvatar]['emoji'],
+                    'bg': _avatars[_selectedAvatar]['bg'],
+                    'time': 'Just now',
+                    'tag': '#TokiStar',
+                    'text': text,
+                    'likes': 1,
+                    'liked': true,
+                  });
+                });
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Post'),
+          ),
+        ],
       ),
     );
   }
@@ -318,53 +397,8 @@ class _TokiMainShellState extends State<TokiMainShell> {
       _bonusClaimed = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('🎉 $title: +300 Free Coins mile! (Total: $_coins 🪙)')),
-    );
-  }
-
-  void _showLeaderboard() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🏆 Weekly Top Party Rooms',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ListTile(
-              leading: const CircleAvatar(
-                  backgroundColor: Colors.amber, child: Text('1')),
-              title: const Text('welcome everyone'),
-              subtitle: const Text('2187 Gift Points'),
-              trailing: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _enterRoom('welcome_everyone', 'welcome everyone');
-                },
-                child: const Text('Join'),
-              ),
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                  backgroundColor: Colors.grey, child: Text('2')),
-              title: const Text('SB AGENCY 14 🏵️'),
-              subtitle: const Text('1540 Gift Points'),
-              trailing: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _enterRoom('sb_agency_14', 'SB AGENCY 14 🏵️');
-                },
-                child: const Text('Join'),
-              ),
-            ),
-          ],
-        ),
-      ),
+      SnackBar(
+          content: Text('🎉 $title: +300 Free Coins mile! (Total: $_coins 🪙)')),
     );
   }
 
@@ -388,15 +422,13 @@ class _TokiMainShellState extends State<TokiMainShell> {
         selectedItemColor: const Color(0xFFFF7A30),
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.star_border), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.blur_circular), label: 'Moments'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: 'Rooms'),
+          BottomNavigationBarItem(icon: Icon(Icons.star), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.public), label: 'Moments'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_work), label: 'Rooms'),
           BottomNavigationBarItem(
             icon: Stack(
               children: [
-                Icon(Icons.chat_bubble_outline),
+                Icon(Icons.chat_bubble),
                 Positioned(
                   right: 0,
                   top: 0,
@@ -411,13 +443,13 @@ class _TokiMainShellState extends State<TokiMainShell> {
             ),
             label: 'Messages',
           ),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: 'Me'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Me'),
         ],
       ),
     );
   }
 
+  // 1. HOME TAB
   Widget _buildHomeTab() {
     final filtered = _users.where((u) {
       if (_homeFilter == 1) return u['isNew'] == true;
@@ -471,7 +503,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
             Expanded(
               child: GestureDetector(
                 onTap: () =>
-                    _enterRoom('welcome_everyone', 'welcome everyone'),
+                    _enterRoom('welcome_everyone', 'welcome everyone 🎶'),
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -591,39 +623,19 @@ class _TokiMainShellState extends State<TokiMainShell> {
     );
   }
 
+  // 2. MOMENTS TAB
   Widget _buildMomentsTab() {
-    return TokiMomentsTab(
-      userName: _nameController.text.trim().isEmpty
-          ? 'Pravin'
-          : _nameController.text.trim(),
-      userEmoji: _avatars[_selectedAvatar]['emoji'].toString(),
-      userBg: _avatars[_selectedAvatar]['bg'] as int,
-      onSayHi: (name) =>
-          _sayHiToUser({'name': name, 'room': 'welcome_everyone'}),
-    );
-  }
-
-  Widget _roomFilterBtn(String label, int idx) {
-    final active = _roomFilter == idx;
-    return GestureDetector(
-      onTap: () => setState(() => _roomFilter = idx),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: active ? 20 : 15,
-            fontWeight: FontWeight.bold,
-            color: active ? Colors.black : Colors.grey,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoomsTab() {
-    final visibleRooms = _tokiRooms.where((r) {
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final t = r['title'].toString().toLowerCase();
-        final s = r['subtitle'].toString().toLowerC
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+          child: Row(
+            children: [
+              const Text('🪐 Moments',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
+              const Spacer(),
+              ElevatedButton.icon(
+               
