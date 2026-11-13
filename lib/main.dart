@@ -46,7 +46,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   final TextEditingController _nameController =
       TextEditingController(text: 'Pravin');
 
-  final List> _hotRooms = const [
+  final List _hotRooms = const [
     {'name': 'toki_party_1', 'title': 'Masti & Singing Party Room', 'tag': 'LIVE'},
     {'name': 'toki_friends', 'title': 'Late Night Adda & Games', 'tag': 'HOT'},
     {'name': 'toki_vip', 'title': 'VIP Golden Mic Club', 'tag': 'VIP'},
@@ -124,30 +124,38 @@ class _LobbyScreenState extends State<LobbyScreen> {
             const SizedBox(height: 18),
             const Text(
               'Trending Party Rooms (Tap to Join)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white70),
             ),
             const SizedBox(height: 8),
             ..._hotRooms.map(
               (room) => Card(
                 color: const Color(0xFF1A1533),
                 margin: const EdgeInsets.only(bottom: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFF4B39EF),
                     child: Icon(Icons.graphic_eq, color: Colors.white),
                   ),
-                  title: Text(room['title']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(room['title'].toString(),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('ID: ${room['name']}'),
                   trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFF4081),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(room['tag']!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    child: Text(room['tag'].toString(),
+                        style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
-                  onTap: () => _enterRoom(room['name']),
+                  onTap: () => _enterRoom(room['name'].toString()),
                 ),
               ),
             ),
@@ -157,7 +165,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
               decoration: InputDecoration(
                 labelText: 'Aapka Naam (Your Name)',
                 prefixIcon: const Icon(Icons.person),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 12),
@@ -166,7 +175,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
               decoration: InputDecoration(
                 labelText: 'Custom Room Name',
                 prefixIcon: const Icon(Icons.meeting_room),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 12),
@@ -175,7 +185,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
               decoration: InputDecoration(
                 labelText: 'Agora App ID',
                 prefixIcon: const Icon(Icons.vpn_key),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 12),
@@ -184,7 +195,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
               decoration: InputDecoration(
                 labelText: 'Temp Token (Optional)',
                 prefixIcon: const Icon(Icons.lock_outline),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 20),
@@ -199,7 +211,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 backgroundColor: const Color(0xFF4B39EF),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ],
@@ -237,13 +250,12 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   String? _bannerText;
   Timer? _bannerTimer;
 
-  final List?> _seats =
-      List?>.filled(9, null);
-  final Set<int> _speakingUids = <int>{};
-  final List> _messages = >[];
+  final List _seats = List.filled(9, null);
+  final Set _speakingUids = {};
+  final List _messages = [];
   final TextEditingController _chatController = TextEditingController();
 
-  final List<String> _truthDares = const [
+  final List _truthDares = const [
     'Apna favourite gaana 2 line gaakar sunao!',
     'Apne best friend ka secret batao!',
     'Ek funny dialogue bolkar dikhao!',
@@ -306,7 +318,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           if (!mounted) return;
           setState(() {
             for (int i = 0; i < 9; i++) {
-              if (_seats[i] != null && _seats[i]!['uid'] == remoteUid) {
+              if (_seats[i] != null && _seats[i]['uid'] == remoteUid) {
                 _seats[i] = null;
               }
             }
@@ -316,7 +328,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             List<AudioVolumeInfo> speakers,
             int speakerNumber,
             int totalVolume) {
-          final active = <int>{};
+          final Set active = {};
           for (final s in speakers) {
             if ((s.volume ?? 0) > 15) {
               active.add(s.uid == 0 ? _localUid : (s.uid ?? 0));
@@ -333,7 +345,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
         onStreamMessage: (RtcConnection connection, int remoteUid, int streamId,
             Uint8List data, int length, int sentTs) {
           try {
-            final map = jsonDecode(utf8.decode(data)) as Map<String, dynamic>;
+            final map = jsonDecode(utf8.decode(data)) as Map;
             _onRemoteData(map);
           } catch (_) {}
         },
@@ -352,7 +364,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     );
   }
 
-  Future<void> _broadcast(Map<String, dynamic> data) async {
+  Future<void> _broadcast(Map data) async {
     if (_streamId == null || !_isJoined || _engine == null) return;
     try {
       final bytes = Uint8List.fromList(utf8.encode(jsonEncode(data)));
@@ -364,7 +376,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     } catch (_) {}
   }
 
-  void _onRemoteData(Map<String, dynamic> data) {
+  void _onRemoteData(Map data) {
     if (!mounted) return;
     setState(() {
       switch (data['type']) {
@@ -376,15 +388,13 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           break;
         case 'seat':
           final idx = data['index'] as int;
-          _seats[idx] = data['user'] == null
-              ? null
-              : Map<String, dynamic>.from(data['user'] as Map);
+          _seats[idx] = data['user'] == null ? null : Map.from(data['user']);
           break;
         case 'sync_seats':
-          final list = data['seats'] as List<dynamic>;
+          final list = data['seats'] as List;
           for (int i = 0; i < 9 && i < list.length; i++) {
             if (list[i] != null && _seats[i] == null) {
-              _seats[i] = Map<String, dynamic>.from(list[i] as Map);
+              _seats[i] = Map.from(list[i]);
             }
           }
           break;
@@ -412,12 +422,12 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
   void _takeSeat(int index) {
     for (int i = 0; i < 9; i++) {
-      if (_seats[i] != null && _seats[i]!['uid'] == _localUid) {
+      if (_seats[i] != null && _seats[i]['uid'] == _localUid) {
         _seats[i] = null;
         _broadcast({'type': 'seat', 'index': i, 'user': null});
       }
     }
-    final userObj = <String, dynamic>{'uid': _localUid, 'name': widget.userName};
+    final userObj = {'uid': _localUid, 'name': widget.userName};
     setState(() => _seats[index] = userObj);
     _broadcast({'type': 'seat', 'index': index, 'user': userObj});
   }
@@ -608,7 +618,4 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           Padding(
             padding: const EdgeInsets.all(12),
             child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 9,
-              gridDelegate: 
+              shrinkWrap: tru        
