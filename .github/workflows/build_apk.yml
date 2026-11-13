@@ -1,0 +1,50 @@
+name: Build Toki Lite APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+
+      - name: Prepare Clean Flutter Project
+        run: |
+          flutter create /tmp/toki_build --project-name toki_lite
+          cp pubspec.yaml /tmp/toki_build/pubspec.yaml
+          mkdir -p /tmp/toki_build/lib
+          cp -r lib/* /tmp/toki_build/lib/
+
+      - name: Add Microphone Permissions
+        run: |
+          MANIFEST="/tmp/toki_build/android/app/src/main/AndroidManifest.xml"
+          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"\/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"\/>\n    <uses-permission android:name="android.permission.BLUETOOTH"\/>\n    <application/' $MANIFEST
+
+      - name: Get Dependencies & Build APK
+        working-directory: /tmp/toki_build
+        run: |
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Toki-Lite-App
+          path: /tmp/toki_build/build/app/outputs/flutter-apk/app-release.apk
+          
