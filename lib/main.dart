@@ -570,4 +570,18 @@ class _PartyRoomScreenState extends State<PartyRoomScreen> {
           Expanded(child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             itemCount: _msgs.length,
-            itemBuilder: (_, i) => Text(_msgs[
+                        itemBuilder: (_, i) => Text(_msgs[i], style: const TextStyle(color: Colors.white, fontSize: 12)),
+          )),
+          Padding(padding: const EdgeInsets.all(10), child: Row(children: [
+            IconButton(onPressed: () => setState(() => _muted = !_muted), icon: Icon(_muted ? Icons.mic_off : Icons.mic, color: _muted ? Colors.redAccent : Colors.greenAccent)),
+            Expanded(child: TextField(controller: _ctrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'Say something...', hintStyle: TextStyle(color: Colors.white54)))),
+            IconButton(onPressed: () { if (_ctrl.text.trim().isNotEmpty) { setState(() => _msgs.add('${widget.userName}: ${_ctrl.text.trim()}')); _ctrl.clear(); } }, icon: const Icon(Icons.send, color: Colors.white)),
+            GestureDetector(onTap: () => _gift('🌹 Rose', 20), child: const Text(' 🌹 ', style: TextStyle(fontSize: 22))),
+            GestureDetector(onTap: () => _gift('👑 Crown', 100), child: const Text(' 👑 ', style: TextStyle(fontSize: 22))),
+          ])),
+        ])),
+      ),
+    );
+  }
+}
+
