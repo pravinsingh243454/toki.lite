@@ -22,7 +22,7 @@ class _TokiMomentsTabState extends State<TokiMomentsTab> {
   int _subTab = 0;
   String _selectedTopic = 'All';
 
-  final List<String> _topics = const [
+  final List _topics = const [
     'All',
     '# Ek song chunen',
     '# Beauty',
@@ -31,7 +31,7 @@ class _TokiMomentsTabState extends State<TokiMomentsTab> {
     "# I'm New",
   ];
 
-  final List> _posts = [
+  final List _posts = [
     {
       'user': 'Thakurain 🐰',
       'age': '28',
@@ -128,12 +128,13 @@ class _TokiMomentsTabState extends State<TokiMomentsTab> {
               Wrap(
                 spacing: 8,
                 children: _topics.skip(1).map((t) {
-                  final sel = chosenTag == t;
+                  final tagStr = t.toString();
+                  final sel = chosenTag == tagStr;
                   return ChoiceChip(
-                    label: Text(t, style: const TextStyle(fontSize: 12)),
+                    label: Text(tagStr, style: const TextStyle(fontSize: 12)),
                     selected: sel,
                     selectedColor: const Color(0xFFFF7A30),
-                    onSelected: (_) => setModal(() => chosenTag = t),
+                    onSelected: (_) => setModal(() => chosenTag = tagStr),
                   );
                 }).toList(),
               ),
@@ -243,9 +244,10 @@ class _TokiMomentsTabState extends State<TokiMomentsTab> {
                   spacing: 8,
                   runSpacing: 8,
                   children: _topics.map((topic) {
-                    final active = _selectedTopic == topic;
+                    final topicStr = topic.toString();
+                    final active = _selectedTopic == topicStr;
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedTopic = topic),
+                      onTap: () => setState(() => _selectedTopic = topicStr),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
@@ -256,7 +258,7 @@ class _TokiMomentsTabState extends State<TokiMomentsTab> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          topic,
+                          topicStr,
                           style: TextStyle(
                             color: active ? Colors.white : Colors.black87,
                             fontSize: 12,
@@ -277,7 +279,7 @@ class _TokiMomentsTabState extends State<TokiMomentsTab> {
     );
   }
 
-  Widget _buildMomentCard(Map<String, dynamic> p) {
+  Widget _buildMomentCard(Map p) {
     final vip = p['vip'].toString();
     final isLiked = p['liked'] == true;
 
