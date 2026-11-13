@@ -33,7 +33,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
   static const String _agoraAppId = '7d9fb3e0517840d38e246fbb98315d22';
 
   int _tabIndex = 0;
-  int _topSubTab = 0; // 0 = Recommend, 1 = New users, 2 = Featured
+  int _topSubTab = 0;
   int _selectedAvatar = 0;
   int _walletCoins = 5000;
   bool _dailyClaimed = false;
@@ -276,7 +276,6 @@ class _TokiMainShellState extends State<TokiMainShell> {
       ),
     );
   }
-
   Widget _buildHomeTab() {
     List displayList;
     if (_topSubTab == 1) {
@@ -311,7 +310,6 @@ class _TokiMainShellState extends State<TokiMainShell> {
                 constraints: const BoxConstraints(),
                 onPressed: _claimBonus,
                 icon: const Icon(Icons.emoji_events, color: Colors.amber, size: 22),
-                tooltip: 'Daily Coins & Rank',
               ),
             ],
           ),
@@ -596,4 +594,198 @@ class _TokiMainShellState extends State<TokiMainShell> {
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Column(
-                    crossAxisAlignment:
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(m['user'].toString(),
+                              style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.bold)),
+                          Text(m['time'].toString(),
+                              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(m['text'].toString(),
+                          style: const TextStyle(color: Colors.black87)),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => setState(() => m['likes'] = (m['likes'] as int) + 1),
+                        child: Text('❤️ ${m['likes']} Likes',
+                            style: const TextStyle(color: Colors.pink, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoomsTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('🎙️ Party & Ludo Rooms',
+            style: TextStyle(
+                color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _roomController,
+                style: const TextStyle(color: Colors.black87),
+                decoration: InputDecoration(
+                  labelText: 'Room ID',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: () => _enterRoom(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF7A30),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+              child: const Text('Join'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ..._hotRooms.map(
+          (room) => Card(
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 10),
+            child: ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFF4B39EF),
+                child: Icon(Icons.graphic_eq, color: Colors.white),
+              ),
+              title: Text(room['title'].toString(),
+                  style: const TextStyle(
+                      color: Colors.black87, fontWeight: FontWeight.bold)),
+              subtitle: Text('👤 ${room['users']} Online • ${room['name']}'),
+              trailing: Chip(
+                label: Text(room['tag'].toString(),
+                    style: const TextStyle(color: Colors.white, fontSize: 11)),
+                backgroundColor: const Color(0xFFFF7A30),
+              ),
+              onTap: () => _enterRoom(room['name'].toString()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMessagesTab() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(14),
+      itemCount: _chats.length,
+      itemBuilder: (_, idx) {
+        final c = _chats[idx];
+        return Card(
+          color: Colors.white,
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFFFF7A30),
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+            title: Text(c['name'].toString(),
+                style: const TextStyle(
+                    color: Colors.black87, fontWeight: FontWeight.bold)),
+            subtitle: Text(c['msg'].toString(),
+                style: const TextStyle(color: Colors.black54)),
+            trailing: Text(c['time'].toString(),
+                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMeTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Center(
+          child: CircleAvatar(
+            radius: 38,
+            backgroundColor: Color(_avatars[_selectedAvatar]['bg'] as int),
+            child: Text(_avatars[_selectedAvatar]['emoji'].toString(),
+                style: const TextStyle(fontSize: 36)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _nameController,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          decoration: const InputDecoration(
+            labelText: 'Your Name',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text('Select Avatar:',
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 54,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _avatars.length,
+            itemBuilder: (_, idx) {
+              final item = _avatars[idx];
+              final isSel = _selectedAvatar == idx;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedAvatar = idx),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSel ? const Color(0xFFFF7A30) : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: Color(item['bg'] as int),
+                    child: Text(item['emoji'].toString(),
+                        style: const TextStyle(fontSize: 20)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 18),
+        ListTile(
+          tileColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          leading: const Icon(Icons.monetization_on, color: Colors.amber),
+          title: const Text('Coins Wallet', style: TextStyle(color: Colors.black87)),
+          trailing: Text('🪙 $_walletCoins',
+              style: const TextStyle(
+                  color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16)),
+          onTap: _claimBonus,
+        ),
+      ],
+    );
+  }
+}
