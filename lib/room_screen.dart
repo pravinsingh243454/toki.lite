@@ -594,4 +594,141 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                                   color: isOccupied
                                       ? Colors.white
                                       : Colors.white54,
+                                                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (activeEmoji != null)
+                          Positioned(
+                            top: 4,
+                            right: 6,
+                            child: Text(activeEmoji.toString(),
+                                style: const TextStyle(fontSize: 26)),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  _quickChip('😂', () => _sendReaction('😂')),
+                  _quickChip('❤️', () => _sendReaction('❤️')),
+                  _quickChip('🔥', () => _sendReaction('🔥')),
+                  _quickChip('👏 Clap', () => _playSoundEffect('👏 Clapping!')),
+                  _quickChip('🥁 Drum', () => _playSoundEffect('🥁 Drumroll!')),
+                  _quickChip('🎉 Party', () => _playSoundEffect('🎉 Woohoo!')),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Divider(height: 1, color: Colors.white12),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(10),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final msg = _messages[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: Colors.black38,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '${msg['sender']}: ',
+                              style: const TextStyle(
+                                color: Color(0xFF9D8DF1),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: msg['text'],
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              color: Colors.black45,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _chatController,
+                      decoration: InputDecoration(
+                        hintText: 'Say something in party...',
+                        filled: true,
+                        fillColor: Colors.white10,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onSubmitted: (_) => _sendChat(),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    onPressed: _sendChat,
+                    icon: const Icon(Icons.send, color: Color(0xFF4B39EF)),
+                  ),
+                  IconButton(
+                    onPressed: _toggleMute,
+                    icon: Icon(
+                      _isMuted ? Icons.mic_off : Icons.mic,
+                      color: _isMuted ? Colors.redAccent : Colors.greenAccent,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _openGifts,
+                    icon: const Icon(Icons.card_giftcard,
+                        color: Colors.pinkAccent),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickChip(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black45,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 13)),
+      ),
+    );
+  }
+}
+
                                 
