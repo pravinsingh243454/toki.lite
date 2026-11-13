@@ -1,9 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const TokiLiteApp());
-}
+void main() => runApp(const TokiLiteApp());
 
 class TokiLiteApp extends StatelessWidget {
   const TokiLiteApp({super.key});
@@ -30,393 +28,123 @@ class TokiMainShell extends StatefulWidget {
 }
 
 class _TokiMainShellState extends State<TokiMainShell> {
-  int _tabIndex = 0; // Starts on Home tab
-  int _homeFilter = 0;
-  int _roomFilter = 0;
-  int _coins = 500;
-  int _selectedAvatar = 0;
-  bool _searching = false;
-  String _searchQuery = '';
-  bool _bonusClaimed = false;
-
-  final TextEditingController _nameController =
-      TextEditingController(text: 'Pravin');
-  final TextEditingController _searchController = TextEditingController();
+  int _tab = 0, _homeFilter = 0, _roomFilter = 0, _coins = 500, _avatar = 0;
+  bool _searching = false, _bonusClaimed = false;
+  String _query = '';
+  final _nameCtrl = TextEditingController(text: 'Pravin');
+  final _searchCtrl = TextEditingController();
 
   final List _avatars = const [
-    {'emoji': '😎', 'bg': 0xFFFFB74D},
-    {'emoji': '👑', 'bg': 0xFFF48FB1},
-    {'emoji': '🎧', 'bg': 0xFF90CAF9},
-    {'emoji': '🔥', 'bg': 0xFFFF8A65},
-    {'emoji': '🌸', 'bg': 0xFFCE93D8},
+    {'e': '😎', 'bg': 0xFFFFB74D},
+    {'e': '👑', 'bg': 0xFFF48FB1},
+    {'e': '🎧', 'bg': 0xFF90CAF9},
+    {'e': '🔥', 'bg': 0xFFFF8A65},
+    {'e': '🌸', 'bg': 0xFFCE93D8},
   ];
 
   final List _users = const [
-    {
-      'name': 'Riya Sharma',
-      'age': '22',
-      'vip': 'VIP5',
-      'bio': 'Singing & late night gossips 🎶',
-      'emoji': '🌸',
-      'bg': 0xFFF48FB1,
-      'roomId': 'welcome_everyone',
-      'roomTitle': 'welcome everyone 🎶',
-      'isNew': false,
-      'featured': true,
-    },
-    {
-      'name': 'Aarav Singh',
-      'age': '24',
-      'vip': 'VIP2',
-      'bio': 'Ludo King champion! Aao khelte hain 🎲',
-      'emoji': '🎧',
-      'bg': 0xFF90CAF9,
-      'roomId': 'sb_agency_14',
-      'roomTitle': 'SB AGENCY 14 🏵️',
-      'isNew': true,
-      'featured': true,
-    },
-    {
-      'name': 'Ananya ✨',
-      'age': '21',
-      'vip': 'VIP6',
-      'bio': 'Shayari & dosti party room ❤️',
-      'emoji': '👑',
-      'bg': 0xFFCE93D8,
-      'roomId': 'dwarka_nath',
-      'roomTitle': '🙏 Dwarka Nath ✓✓✓✓',
-      'isNew': true,
-      'featured': false,
-    },
+    {'name': 'Riya Sharma', 'age': '22', 'vip': 'VIP5', 'bio': 'Singing & late night gossips 🎶', 'e': '🌸', 'bg': 0xFFF48FB1, 'room': 'welcome everyone 🎶', 'new': false, 'feat': true},
+    {'name': 'Aarav Singh', 'age': '24', 'vip': 'VIP2', 'bio': 'Ludo King champion! Aao khelte hain 🎲', 'e': '🎧', 'bg': 0xFF90CAF9, 'room': 'SB AGENCY 14 🏵️', 'new': true, 'feat': true},
+    {'name': 'Ananya ✨', 'age': '21', 'vip': 'VIP6', 'bio': 'Shayari & dosti party room ❤️', 'e': '👑', 'bg': 0xFFCE93D8, 'room': '🙏 Dwarka Nath ✓✓✓✓', 'new': true, 'feat': false},
   ];
 
   final List _moments = [
-    {
-      'name': 'Riya Sharma',
-      'emoji': '🌸',
-      'bg': 0xFFF48FB1,
-      'time': '2m ago',
-      'tag': '#LateNightMusic',
-      'text': 'Aaj raat party room mein gaane aur masti hogi! Sabhi dost aao 🎙️🎶',
-      'likes': 48,
-      'liked': false,
-    },
-    {
-      'name': 'Aarav Singh',
-      'emoji': '🎧',
-      'bg': 0xFF90CAF9,
-      'time': '15m ago',
-      'tag': '#LudoKing',
-      'text': 'Ludo race mein kaun mujhe hara sakta hai? Aao room mein challenge karo 🎲🔥',
-      'likes': 31,
-      'liked': false,
-    },
+    {'name': 'Riya Sharma', 'e': '🌸', 'bg': 0xFFF48FB1, 'time': '2m ago', 'tag': '#MusicParty', 'text': 'Aaj raat party room mein gaane aur masti hogi! Sabhi dost aao 🎙️🎶', 'likes': 48, 'liked': false},
+    {'name': 'Aarav Singh', 'e': '🎧', 'bg': 0xFF90CAF9, 'time': '15m ago', 'tag': '#LudoKing', 'text': 'Ludo race mein kaun mujhe hara sakta hai? Room mein challenge karo 🎲🔥', 'likes': 31, 'liked': false},
   ];
 
-  final List _tokiRooms = [
-    {
-      'title': 'welcome everyone',
-      'id': 'welcome_everyone',
-      'subtitle': '2187 a💑👩‍❤️‍👩🎁🎁🎁🎁👍',
-      'badge': 'Music',
-      'views': '95',
-      'emoji': '👩🏻',
-      'bg1': 0xFFF8BBD0,
-      'bg2': 0xFFF48FB1,
-      'badgeColor': 0xFF2979FF,
-      'cat': 'Video',
-      'isMine': false,
-    },
-    {
-      'title': 'SB AGENCY 14 🏵️',
-      'id': 'sb_agency_14',
-      'subtitle': 'Welcome to the room, let\'s chat~',
-      'badge': 'Friendship',
-      'views': '43',
-      'emoji': '🪷',
-      'bg1': 0xFFFFE0B2,
-      'bg2': 0xFFFFCC80,
-      'badgeColor': 0xFFFF4081,
-      'cat': 'Recommend',
-      'isMine': false,
-    },
-    {
-      'title': 'IHGS Thank you so m 🏵️',
-      'id': 'ihgs_room',
-      'subtitle': 'Everyone has same Eyes but η...',
-      'badge': 'Families',
-      'views': '42',
-      'emoji': '🧔🏻‍♂️',
-      'bg1': 0xFFCFD8DC,
-      'bg2': 0xFF90A4AE,
-      'badgeColor': 0xFF00C853,
-      'cat': 'New',
-      'isMine': false,
-    },
-    {
-      'title': '🙏 Dwarka Nath ✓✓✓✓ 🏵️',
-      'id': 'dwarka_nath',
-      'subtitle': 'Radhe Radhe ji 🙏',
-      'badge': 'Chat',
-      'views': '32',
-      'emoji': '💃🏻',
-      'bg1': 0xFFFFF59D,
-      'bg2': 0xFFFFD54F,
-      'badgeColor': 0xFFAA00FF,
-      'cat': 'Video',
-      'isMine': false,
-    },
-    {
-      'title': '🎂 HBD Alisha 😘🎂 🏵️',
-      'id': 'hbd_alisha',
-      'subtitle': '🎂 Happy Birthday Alisha! 🎂 (13...',
-      'badge': 'Friendship',
-      'views': '23',
-      'emoji': '🎂',
-      'bg1': 0xFFFFCDD2,
-      'bg2': 0xFFE57373,
-      'badgeColor': 0xFFFF4081,
-      'cat': 'New',
-      'isMine': false,
-    },
+  final List _rooms = [
+    {'title': 'welcome everyone', 'sub': '2187 a💑👩‍❤️‍👩🎁🎁🎁🎁👍', 'tag': 'Music', 'views': '95', 'e': '👩🏻', 'c1': 0xFFF8BBD0, 'c2': 0xFFF48FB1, 'tc': 0xFF2979FF, 'cat': 'Video', 'mine': false},
+    {'title': 'SB AGENCY 14 🏵️', 'sub': 'Welcome to the room, let\'s chat~', 'tag': 'Friendship', 'views': '43', 'e': '🪷', 'c1': 0xFFFFE0B2, 'c2': 0xFFFFCC80, 'tc': 0xFFFF4081, 'cat': 'Recommend', 'mine': false},
+    {'title': 'IHGS Thank you so m 🏵️', 'sub': 'Everyone has same Eyes but...', 'tag': 'Families', 'views': '42', 'e': '🧔🏻‍♂️', 'c1': 0xFFCFD8DC, 'c2': 0xFF90A4AE, 'tc': 0xFF00C853, 'cat': 'New', 'mine': false},
+    {'title': '🙏 Dwarka Nath ✓✓✓✓', 'sub': 'Radhe Radhe ji 🙏', 'tag': 'Chat', 'views': '32', 'e': '💃🏻', 'c1': 0xFFFFF59D, 'c2': 0xFFFFD54F, 'tc': 0xFFAA00FF, 'cat': 'Video', 'mine': false},
+    {'title': '🎂 HBD Alisha 😘🎂', 'sub': 'Happy Birthday Alisha! 🎂', 'tag': 'Friendship', 'views': '23', 'e': '🎂', 'c1': 0xFFFFCDD2, 'c2': 0xFFE57373, 'tc': 0xFFFF4081, 'cat': 'New', 'mine': false},
   ];
 
   final List _chats = [
-    {
-      'name': 'Riya Sharma',
-      'emoji': '🌸',
-      'msg': 'Hi! Party room mein aao na 🎙️',
-      'time': 'Just now',
-    },
-    {
-      'name': 'Toki Official',
-      'emoji': '👑',
-      'msg': 'Welcome to toki.lite! 500 Free Coins mile 🎉',
-      'time': 'Today',
-    },
+    {'name': 'Riya Sharma', 'e': '🌸', 'msg': 'Hi! Party room mein aao na 🎙️', 'time': 'Just now'},
+    {'name': 'Toki Official', 'e': '👑', 'msg': 'Welcome to toki.lite! 500 Free Coins mile 🎉', 'time': 'Today'},
   ];
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _searchController.dispose();
-    super.dispose();
+  String get _myName => _nameCtrl.text.trim().isEmpty ? 'Pravin' : _nameCtrl.text.trim();
+
+  void _enterRoom(String title) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PartyRoomScreen(
+      roomTitle: title,
+      userName: _myName,
+      userEmoji: _avatars[_avatar]['e'].toString(),
+      userBg: _avatars[_avatar]['bg'] as int,
+      coins: _coins,
+      onCoins: (v) => setState(() => _coins = v),
+    )));
   }
 
-  void _enterRoom(String roomId, String title) {
-    final myName = _nameController.text.trim().isEmpty
-        ? 'Pravin'
-        : _nameController.text.trim();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PartyRoomScreen(
-          roomId: roomId,
-          roomTitle: title,
-          userName: myName,
-          userEmoji: _avatars[_selectedAvatar]['emoji'].toString(),
-          userBg: _avatars[_selectedAvatar]['bg'] as int,
-          coins: _coins,
-          onCoinsChanged: (newCoins) {
-            setState(() => _coins = newCoins);
+  void _openChat(String name, String emoji, String roomTitle) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PrivateChatScreen(
+      peerName: name,
+      peerEmoji: emoji,
+      onJoinRoom: () {
+        Navigator.pop(context);
+        _enterRoom(roomTitle);
+      },
+    )));
+  }
+
+  void _sayHi(String name, String emoji, String room) {
+    setState(() => _chats.insert(0, {'name': name, 'e': emoji, 'msg': '👋 Aapne Hi bheja! Tap karke chat karein', 'time': 'Now'}));
+    _openChat(name, emoji, room);
+  }
+
+  void _postMoment() {
+    final c = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('🪐 Post New Moment'),
+      content: TextField(controller: c, maxLines: 3, decoration: const InputDecoration(hintText: 'Apne dil ki baat likhein...', border: OutlineInputBorder())),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
+          onPressed: () {
+            if (c.text.trim().isNotEmpty) {
+              setState(() => _moments.insert(0, {'name': _myName, 'e': _avatars[_avatar]['e'], 'bg': _avatars[_avatar]['bg'], 'time': 'Just now', 'tag': '#TokiStar', 'text': c.text.trim(), 'likes': 1, 'liked': true}));
+            }
+            Navigator.pop(ctx);
           },
+          child: const Text('Post'),
         ),
-      ),
-    );
+      ],
+    ));
   }
 
-  void _openChat(String name, String emoji, String roomId, String roomTitle) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PrivateChatScreen(
-          peerName: name,
-          peerEmoji: emoji,
-          onJoinVoiceRoom: () {
-            Navigator.pop(context);
-            _enterRoom(roomId, roomTitle);
+  void _createRoom() {
+    final c = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('🎙️ Create Live Room'),
+      content: TextField(controller: c, decoration: const InputDecoration(hintText: 'Room ka naam likhein...', border: OutlineInputBorder())),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
+          onPressed: () {
+            final t = c.text.trim().isEmpty ? '$_myName\'s Party Room' : c.text.trim();
+            setState(() => _rooms.insert(0, {'title': t, 'sub': 'Host: $_myName • Live Now 🎙️', 'tag': 'Music', 'views': '1', 'e': _avatars[_avatar]['e'], 'c1': 0xFFFFCC80, 'c2': 0xFFFF7A30, 'tc': 0xFFFF7A30, 'cat': 'New', 'mine': true}));
+            Navigator.pop(ctx);
+            _enterRoom(t);
           },
+          child: const Text('Go Live'),
         ),
-      ),
-    );
-  }
-
-  void _sayHiToUser(Map u) {
-    final name = u['name'].toString();
-    final emoji = u['emoji'].toString();
-    setState(() {
-      _chats.insert(0, {
-        'name': name,
-        'emoji': emoji,
-        'msg': '👋 Aapne Hi bheja! Tap karke chat karein',
-        'time': 'Now',
-      });
-    });
-    _openChat(
-      name,
-      emoji,
-      u['roomId'].toString(),
-      u['roomTitle'].toString(),
-    );
-  }
-
-  void _createMomentDialog() {
-    final postCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('🪐 Post New Moment'),
-        content: TextField(
-          controller: postCtrl,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Apne dil ki baat ya shayari likhein...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF7A30),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              final text = postCtrl.text.trim();
-              if (text.isNotEmpty) {
-                setState(() {
-                  _moments.insert(0, {
-                    'name': _nameController.text.trim().isEmpty
-                        ? 'Pravin'
-                        : _nameController.text.trim(),
-                    'emoji': _avatars[_selectedAvatar]['emoji'],
-                    'bg': _avatars[_selectedAvatar]['bg'],
-                    'time': 'Just now',
-                    'tag': '#TokiStar',
-                    'text': text,
-                    'likes': 1,
-                    'liked': true,
-                  });
-                });
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('Post'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openCreateRoomDialog() {
-    final titleCtrl = TextEditingController();
-    String selectedTag = 'Music';
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('🎙️ Create Live Party Room'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(
-                  hintText: 'Room ka naam likhein...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: ['Music', 'Friendship', 'Chat', 'Families'].map((t) {
-                  final sel = selectedTag == t;
-                  return ChoiceChip(
-                    label: Text(t),
-                    selected: sel,
-                    selectedColor: const Color(0xFFFF7A30),
-                    onSelected: (_) => setDialogState(() => selectedTag = t),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A30),
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                final title = titleCtrl.text.trim().isEmpty
-                    ? '${_nameController.text}\'s Party Room'
-                    : titleCtrl.text.trim();
-                final newId = 'room_${DateTime.now().millisecondsSinceEpoch}';
-                setState(() {
-                  _tokiRooms.insert(0, {
-                    'title': title,
-                    'id': newId,
-                    'subtitle': 'Host: ${_nameController.text} • Live Now 🎙️',
-                    'badge': selectedTag,
-                    'views': '1',
-                    'emoji': _avatars[_selectedAvatar]['emoji'],
-                    'bg1': 0xFFFFCC80,
-                    'bg2': 0xFFFF7A30,
-                    'badgeColor': 0xFFFF7A30,
-                    'cat': 'New',
-                    'isMine': true,
-                  });
-                });
-                Navigator.pop(ctx);
-                _enterRoom(newId, title);
-              },
-              child: const Text('Go Live'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _claimEventBonus(String title) {
-    if (_bonusClaimed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Aap aaj ka Event Bonus le chuke hain!')),
-      );
-      return;
-    }
-    setState(() {
-      _coins += 300;
-      _bonusClaimed = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('🎉 $title: +300 Free Coins mile! (Total: $_coins 🪙)')),
-    );
+      ],
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      _buildHomeTab(),
-      _buildMomentsTab(),
-      _buildRoomsTab(),
-      _buildMessagesTab(),
-      _buildMeTab(),
-    ];
-
+    final pages = [_homeTab(), _momentsTab(), _roomsTab(), _messagesTab(), _meTab()];
     return Scaffold(
-      body: SafeArea(child: pages[_tabIndex]),
+      body: SafeArea(child: pages[_tab]),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _tabIndex,
-        onTap: (i) => setState(() => _tabIndex = i),
+        currentIndex: _tab,
+        onTap: (i) => setState(() => _tab = i),
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFF1E1E24),
         selectedItemColor: const Color(0xFFFF7A30),
@@ -425,217 +153,421 @@ class _TokiMainShellState extends State<TokiMainShell> {
           BottomNavigationBarItem(icon: Icon(Icons.star), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.public), label: 'Moments'),
           BottomNavigationBarItem(icon: Icon(Icons.home_work), label: 'Rooms'),
-          BottomNavigationBarItem(
-            icon: Stack(
-              children: [
-                Icon(Icons.chat_bubble),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: CircleAvatar(
-                    radius: 7,
-                    backgroundColor: Colors.red,
-                    child: Text('99+',
-                        style: TextStyle(color: Colors.white, fontSize: 7)),
-                  ),
-                ),
-              ],
-            ),
-            label: 'Messages',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Messages'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Me'),
         ],
       ),
     );
   }
 
-  // 1. HOME TAB
-  Widget _buildHomeTab() {
-    final filtered = _users.where((u) {
-      if (_homeFilter == 1) return u['isNew'] == true;
-      if (_homeFilter == 2) return u['featured'] == true;
-      return true;
-    }).toList();
-
-    return ListView(
-      padding: const EdgeInsets.all(14),
-      children: [
-        Row(
-          children: [
-            _homeFilterBtn('Recommend', 0),
-            const SizedBox(width: 14),
-            _homeFilterBtn('New users', 1),
-            const SizedBox(width: 14),
-            _homeFilterBtn('Featured', 2),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _sayHiToUser(_users[0]),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFFFF8A65), Color(0xFFFF7043)]),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('💖 SoulLink',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                      SizedBox(height: 4),
-                      Text('Instant dost match',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () =>
-                    _enterRoom('welcome_everyone', 'welcome everyone 🎶'),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFF4B39EF), Color(0xFF7C4DFF)]),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('🎙️ Party Room',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                      SizedBox(height: 4),
-                      Text('9-Seat Live Voice',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ...filtered.map((u) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: Color(u['bg'] as int),
-                    child: Text(u['emoji'].toString(),
-                        style: const TextStyle(fontSize: 26)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(u['name'].toString(),
-                            style: const TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15)),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFF80AB),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('♀ ${u['age']}',
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 10)),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFB300),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('👑 ${u['vip']}',
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 10)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(u['bio'].toString(),
-                            style: const TextStyle(
-                                color: Colors.black54, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => _sayHiToUser(u),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF7A30),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18)),
-                    ),
-                    child: const Text('👋 Hi'),
-                  ),
-                ],
-              ),
-            )),
-      ],
-    );
-  }
-
-  Widget _homeFilterBtn(String label, int idx) {
-    final active = _homeFilter == idx;
+  Widget _fBtn(String label, int idx, int cur, ValueChanged onTap) {
+    final act = cur == idx;
     return GestureDetector(
-      onTap: () => setState(() => _homeFilter = idx),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: active ? 19 : 15,
-          fontWeight: FontWeight.bold,
-          color: active ? Colors.black : Colors.grey,
-        ),
+      onTap: () => onTap(idx),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 14),
+        child: Text(label, style: TextStyle(fontSize: act ? 19 : 15, fontWeight: FontWeight.bold, color: act ? Colors.black : Colors.grey)),
       ),
     );
   }
+    Widget _homeTab() {
+    final list = _users.where((u) => _homeFilter == 1 ? u['new'] == true : (_homeFilter == 2 ? u['feat'] == true : true)).toList();
+    return ListView(padding: const EdgeInsets.all(14), children: [
+      Row(children: [
+        _fBtn('Recommend', 0, _homeFilter, (v) => setState(() => _homeFilter = v)),
+        _fBtn('New users', 1, _homeFilter, (v) => setState(() => _homeFilter = v)),
+        _fBtn('Featured', 2, _homeFilter, (v) => setState(() => _homeFilter = v)),
+      ]),
+      const SizedBox(height: 12),
+      Row(children: [
+        Expanded(child: GestureDetector(
+          onTap: () => _sayHi('Riya Sharma', '🌸', 'welcome everyone 🎶'),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFF8A65), Color(0xFFFF7043)]), borderRadius: BorderRadius.circular(14)),
+            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('💖 SoulLink', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Instant dost match', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ]),
+          ),
+        )),
+        const SizedBox(width: 10),
+        Expanded(child: GestureDetector(
+          onTap: () => _enterRoom('welcome everyone 🎶'),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4B39EF), Color(0xFF7C4DFF)]), borderRadius: BorderRadius.circular(14)),
+            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('🎙️ Party Room', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('9-Seat Live Voice', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ]),
+          ),
+        )),
+      ]),
+      const SizedBox(height: 12),
+      ...list.map((u) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+        child: Row(children: [
+          CircleAvatar(radius: 25, backgroundColor: Color(u['bg'] as int), child: Text(u['e'].toString(), style: const TextStyle(fontSize: 24))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${u['name']}  •  👑 ${u['vip']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 4),
+            Text(u['bio'].toString(), style: const TextStyle(color: Colors.black54, fontSize: 12)),
+          ])),
+          ElevatedButton(
+            onPressed: () => _sayHi(u['name'].toString(), u['e'].toString(), u['room'].toString()),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
+            child: const Text('👋 Hi'),
+          ),
+        ]),
+      )),
+    ]);
+  }
 
-  // 2. MOMENTS TAB
-  Widget _buildMomentsTab() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-          child: Row(
-            children: [
-              const Text('🪐 Moments',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
-              const Spacer(),
-              ElevatedButton.icon(
-               
+  Widget _momentsTab() {
+    return Column(children: [
+      Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 8), child: Row(children: [
+        const Text('🪐 Moments', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+        const Spacer(),
+        ElevatedButton(
+          onPressed: _postMoment,
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
+          child: const Text('+ Post'),
+        ),
+      ])),
+      Expanded(child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        itemCount: _moments.length,
+        itemBuilder: (_, i) {
+          final m = _moments[i];
+          final liked = m['liked'] == true;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                CircleAvatar(backgroundColor: Color(m['bg'] as int), child: Text(m['e'].toString())),
+                const SizedBox(width: 10),
+                Expanded(child: Text('${m['name']}\n${m['time']}', style: const TextStyle(color: Colors.black87, fontSize: 13))),
+                TextButton(onPressed: () => _sayHi(m['name'].toString(), m['e'].toString(), 'welcome everyone 🎶'), child: const Text('👋 Hi', style: TextStyle(color: Color(0xFFFF7A30)))),
+              ]),
+              const SizedBox(height: 8),
+              Text(m['text'].toString(), style: const TextStyle(color: Colors.black87)),
+              const SizedBox(height: 8),
+              Row(children: [
+                Text(m['tag'].toString(), style: const TextStyle(color: Color(0xFFFF7A30), fontSize: 12)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    m['liked'] = !liked;
+                    m['likes'] = (m['likes'] as int) + (liked ? -1 : 1);
+                  }),
+                  child: Row(children: [
+                    Icon(liked ? Icons.favorite : Icons.favorite_border, color: liked ? Colors.red : Colors.grey, size: 20),
+                    Text(' ${m['likes']}'),
+                  ]),
+                ),
+              ]),
+            ]),
+          );
+        },
+      )),
+    ]);
+  }
+
+  Widget _roomsTab() {
+    final list = _rooms.where((r) {
+      if (_query.isNotEmpty && !r['title'].toString().toLowerCase().contains(_query.toLowerCase())) return false;
+      if (_roomFilter == 1) return r['cat'] == 'Video';
+      if (_roomFilter == 2) return r['cat'] == 'New';
+      if (_roomFilter == 3) return r['mine'] == true;
+      return true;
+    }).toList();
+
+    return Column(children: [
+      Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 6), child: Row(children: [
+        _fBtn('Recommend', 0, _roomFilter, (v) => setState(() => _roomFilter = v)),
+        _fBtn('Video', 1, _roomFilter, (v) => setState(() => _roomFilter = v)),
+        _fBtn('New', 2, _roomFilter, (v) => setState(() => _roomFilter = v)),
+        _fBtn('Me', 3, _roomFilter, (v) => setState(() => _roomFilter = v)),
+        const Spacer(),
+        GestureDetector(onTap: () => setState(() { _searching = !_searching; _query = ''; _searchCtrl.clear(); }), child: const Icon(Icons.search)),
+        const SizedBox(width: 10),
+        GestureDetector(onTap: _createRoom, child: const Icon(Icons.add_box_outlined)),
+      ])),
+      if (_searching) Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: TextField(controller: _searchCtrl, onChanged: (v) => setState(() => _query = v), decoration: const InputDecoration(hintText: 'Room khojein...', filled: true, fillColor: Colors.white, border: OutlineInputBorder())),
+      ),
+      GestureDetector(
+        onTap: () {
+          if (!_bonusClaimed) setState(() { _coins += 300; _bonusClaimed = true; });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🪙 Total Coins: $_coins')));
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFF9E67), Color(0xFFFF7A30)]), borderRadius: BorderRadius.circular(14)),
+          child: Row(children: [
+            Expanded(child: Text(_bonusClaimed ? 'Event Center • Bonus Claimed (🪙 $_coins)' : 'Event Center • Tap for +300 Free Coins ➔', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+            const Icon(Icons.event_note, color: Colors.white, size: 30),
+          ]),
+        ),
+      ),
+      Expanded(child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        itemCount: list.length,
+        itemBuilder: (_, i) {
+          final r = list[i];
+          return GestureDetector(
+            onTap: () => _enterRoom(r['title'].toString()),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(gradient: LinearGradient(colors: [Color(r['c1'] as int), Color(r['c2'] as int)]), borderRadius: BorderRadius.circular(12)),
+                  alignment: Alignment.center,
+                  child: Text(r['e'].toString(), style: const TextStyle(fontSize: 26)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(r['title'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+                  Text(r['sub'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Text(r['tag'].toString(), style: TextStyle(color: Color(r['tc'] as int), fontSize: 11, fontWeight: FontWeight.bold)),
+                ])),
+                Text('📶 ${r['views']}', style: const TextStyle(color: Color(0xFFFF7A30), fontWeight: FontWeight.bold, fontSize: 12)),
+              ]),
+            ),
+          );
+        },
+      )),
+    ]);
+  }
+
+  Widget _messagesTab() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(14),
+      itemCount: _chats.length,
+      itemBuilder: (_, i) {
+        final c = _chats[i];
+        return Card(
+          color: Colors.white,
+          child: ListTile(
+            leading: CircleAvatar(backgroundColor: const Color(0xFFFF7A30), child: Text(c['e'].toString())),
+            title: Text(c['name'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(c['msg'].toString()),
+            trailing: Text(c['time'].toString(), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            onTap: () => _openChat(c['name'].toString(), c['e'].toString(), 'welcome everyone 🎶'),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _meTab() {
+    return ListView(padding: const EdgeInsets.all(16), children: [
+      Center(child: CircleAvatar(radius: 36, backgroundColor: Color(_avatars[_avatar]['bg'] as int), child: Text(_avatars[_avatar]['e'].toString(), style: const TextStyle(fontSize: 34)))),
+      const SizedBox(height: 12),
+      TextField(controller: _nameCtrl, textAlign: TextAlign.center, decoration: const InputDecoration(labelText: 'Your Name', filled: true, fillColor: Colors.white, border: OutlineInputBorder())),
+      const SizedBox(height: 14),
+      Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: List.generate(_avatars.length, (i) => GestureDetector(
+        onTap: () => setState(() => _avatar = i),
+        child: CircleAvatar(radius: 22, backgroundColor: Color(_avatars[i]['bg'] as int), child: Text(_avatars[i]['e'].toString(), style: const TextStyle(fontSize: 20))),
+      ))),
+      const SizedBox(height: 18),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+        child: Row(children: [
+          Text('🪙 My Coins: $_coins', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Spacer(),
+          ElevatedButton(onPressed: () => setState(() => _coins += 200), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white), child: const Text('+200 Free')),
+        ]),
+      ),
+    ]);
+  }
+}
+
+class PrivateChatScreen extends StatefulWidget {
+  final String peerName, peerEmoji;
+  final VoidCallback onJoinRoom;
+  const PrivateChatScreen({super.key, required this.peerName, required this.peerEmoji, required this.onJoinRoom});
+
+  @override
+  State<PrivateChatScreen> createState() => _PrivateChatScreenState();
+}
+
+class _PrivateChatScreenState extends State<PrivateChatScreen> {
+  final _ctrl = TextEditingController();
+  final List _msgs = [{'me': false, 't': 'Hi! Kaise ho? Aaj party room mein aao na 🎙️'}];
+
+  void _send() {
+    if (_ctrl.text.trim().isEmpty) return;
+    final t = _ctrl.text.trim();
+    _ctrl.clear();
+    setState(() {
+      _msgs.add({'me': true, 't': t});
+      _msgs.add({'me': false, 't': 'Bilkul! Upar Voice Room dabao 🎶'});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.peerEmoji} ${widget.peerName}'),
+        actions: [TextButton(onPressed: widget.onJoinRoom, child: const Text('🎙️ Voice Room', style: TextStyle(color: Color(0xFFFF7A30))))],
+      ),
+      body: Column(children: [
+        Expanded(child: ListView.builder(
+          padding: const EdgeInsets.all(14),
+          itemCount: _msgs.length,
+          itemBuilder: (_, i) {
+            final me = _msgs[i]['me'] == true;
+            return Align(
+              alignment: me ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: me ? const Color(0xFFFF7A30) : Colors.white, borderRadius: BorderRadius.circular(14)),
+                child: Text(_msgs[i]['t'].toString(), style: TextStyle(color: me ? Colors.white : Colors.black87)),
+              ),
+            );
+          },
+        )),
+        Padding(padding: const EdgeInsets.all(10), child: Row(children: [
+          Expanded(child: TextField(controller: _ctrl, onSubmitted: (_) => _send(), decoration: const InputDecoration(hintText: 'Message...', filled: true, fillColor: Colors.white, border: OutlineInputBorder()))),
+          IconButton(icon: const Icon(Icons.send, color: Color(0xFFFF7A30)), onPressed: _send),
+        ])),
+      ]),
+    );
+  }
+}
+
+class PartyRoomScreen extends StatefulWidget {
+  final String roomTitle, userName, userEmoji;
+  final int userBg, coins;
+  final ValueChanged onCoins;
+  const PartyRoomScreen({super.key, required this.roomTitle, required this.userName, required this.userEmoji, required this.userBg, required this.coins, required this.onCoins});
+
+  @override
+  State<PartyRoomScreen> createState() => _PartyRoomScreenState();
+}
+
+class _PartyRoomScreenState extends State<PartyRoomScreen> {
+  int _seat = 0, _theme = 0, _dice = 1, _p1 = 0, _p2 = 0;
+  bool _muted = false, _locked = false;
+  late int _coins;
+  final _ctrl = TextEditingController();
+  final _msgs = ['🎉 Welcome to Toki Live Voice Party!'];
+  final _themes = const [[0xFF1E1B4B, 0xFF4B39EF], [0xFF3B0764, 0xFFDB2777], [0xFF064E3B, 0xFF0D9488]];
+  final List _seats = [
+    {'n': 'Host', 'e': '🌸', 'bg': 0xFFF48FB1, 't': true},
+    {'n': 'Seat 2', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
+    {'n': 'Aarav', 'e': '🎧', 'bg': 0xFF90CAF9, 't': true},
+    {'n': 'Seat 4', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
+    {'n': 'Seat 5', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
+    {'n': 'Ananya', 'e': '👑', 'bg': 0xFFCE93D8, 't': true},
+    {'n': 'Seat 7', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
+    {'n': 'Seat 8', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
+    {'n': 'Seat 9', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _coins = widget.coins;
+  }
+
+  void _tapSeat(int i) {
+    if (_locked && _seat != i) return;
+    setState(() {
+      if (_seat == i) {
+        _seats[i] = {'n': 'Seat ${i + 1}', 'e': '🎙️', 'bg': 0xFF334155, 't': false};
+        _seat = -1;
+      } else if (_seats[i]['t'] == false) {
+        if (_seat >= 0) _seats[_seat] = {'n': 'Seat ${_seat + 1}', 'e': '🎙️', 'bg': 0xFF334155, 't': false};
+        _seats[i] = {'n': widget.userName, 'e': widget.userEmoji, 'bg': widget.userBg, 't': true};
+        _seat = i;
+      }
+    });
+  }
+
+  void _roll() {
+    final r = Random().nextInt(6) + 1;
+    setState(() {
+      _dice = r;
+      _p1 = (_p1 + r).clamp(0, 30);
+      _p2 = (_p2 + Random().nextInt(6) + 1).clamp(0, 30);
+      _msgs.add('🎲 ${widget.userName} rolled $r ($_p1/30)');
+      if (_p1 >= 30) {
+        _coins += 100;
+        widget.onCoins(_coins);
+        _msgs.add('🏆 ${widget.userName} won Ludo! +100 Coins');
+        _p1 = 0; _p2 = 0;
+      }
+    });
+  }
+
+  void _gift(String g, int cost) {
+    if (_coins < cost) return;
+    setState(() {
+      _coins -= cost;
+      widget.onCoins(_coins);
+      _msgs.add('🎁 ${widget.userName} sent $g (-$cost 🪙)');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _themes[_theme];
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(c[0]), Color(c[1])])),
+        child: SafeArea(child: Column(children: [
+          Row(children: [
+            IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back, color: Colors.white)),
+            Expanded(child: Text(widget.roomTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+            Text('🪙 $_coins ', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+            IconButton(onPressed: () => setState(() => _theme = (_theme + 1) % 3), icon: const Icon(Icons.palette, color: Colors.white)),
+            IconButton(onPressed: () => setState(() => _locked = !_locked), icon: Icon(_locked ? Icons.lock : Icons.lock_open, color: Colors.white)),
+          ]),
+          GridView.builder(
+            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), padding: const EdgeInsets.symmetric(horizontal: 14),
+            itemCount: 9,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.2),
+            itemBuilder: (_, i) {
+              final s = _seats[i];
+              return GestureDetector(
+                onTap: () => _tapSeat(i),
+                child: Container(
+                  decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(12), border: _seat == i ? Border.all(color: Colors.amber, width: 2) : null),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    CircleAvatar(radius: 18, backgroundColor: Color(s['bg'] as int), child: Text(s['e'].toString())),
+                    const SizedBox(height: 4),
+                    Text(s['n'].toString(), style: const TextStyle(color: Colors.white, fontSize: 11)),
+                  ]),
+                ),
+              );
+            },
+          ),
+          Container(
+            margin: const EdgeInsets.all(12), padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [
+              Expanded(child: Text('🎲 Ludo Race: You $_p1/30 • Bot $_p2/30', style: const TextStyle(color: Colors.amberAccent, fontSize: 12))),
+              ElevatedButton(onPressed: _roll, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white), child: Text('Roll ($_dice)')),
+            ]),
+          ),
+          Expanded(child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            itemCount: _msgs.length,
+            itemBuilder: (_, i) => Text(_msgs[
