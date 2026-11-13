@@ -46,6 +46,19 @@ class _LobbyScreenState extends State<LobbyScreen> {
   final TextEditingController _nameController =
       TextEditingController(text: 'Pravin');
 
+  int _selectedAvatar = 0;
+
+  final List _avatars = const [
+    {'emoji': '😎', 'bg': 0xFF4B39EF},
+    {'emoji': '👑', 'bg': 0xFFD97706},
+    {'emoji': '🦊', 'bg': 0xFFEA580C},
+    {'emoji': '🎧', 'bg': 0xFF7C3AED},
+    {'emoji': '🦋', 'bg': 0xFFDB2777},
+    {'emoji': '🦁', 'bg': 0xFFCA8A04},
+    {'emoji': '🚀', 'bg': 0xFF0284C7},
+    {'emoji': '💖', 'bg': 0xFFE11D48},
+  ];
+
   final List _hotRooms = const [
     {'name': 'toki_party_1', 'title': 'Masti & Singing Party Room', 'tag': 'LIVE'},
     {'name': 'toki_friends', 'title': 'Late Night Adda & Games', 'tag': 'HOT'},
@@ -70,6 +83,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           userName: _nameController.text.trim().isEmpty
               ? 'User'
               : _nameController.text.trim(),
+          avatarIndex: _selectedAvatar,
         ),
       ),
     );
@@ -88,7 +102,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('toki.lite • Voice Party'),
+        title: const Text('toki.lite • VIP Voice Party'),
         backgroundColor: const Color(0xFF4B39EF),
         centerTitle: true,
       ),
@@ -98,7 +112,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF4B39EF), Color(0xFF9B51E0)],
@@ -107,21 +121,61 @@ class _LobbyScreenState extends State<LobbyScreen> {
               ),
               child: const Column(
                 children: [
-                  Icon(Icons.headset_mic, size: 46, color: Colors.white),
-                  SizedBox(height: 8),
+                  Icon(Icons.headset_mic, size: 42, color: Colors.white),
+                  SizedBox(height: 6),
                   Text(
                     'toki.lite Live Voice Chat',
                     style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '9 Mic Seats • Real Live Voice • Gifts • Party Games',
+                    'Avatars • Themes • Emojis • Gifts • Sound Board',
                     style: TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
+            const Text(
+              'Apna Profile Avatar Chunein:',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 58,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _avatars.length,
+                itemBuilder: (context, idx) {
+                  final item = _avatars[idx];
+                  final isSel = _selectedAvatar == idx;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedAvatar = idx),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 10),
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSel ? Colors.amber : Colors.transparent,
+                          width: 2.5,
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 23,
+                        backgroundColor: Color(item['bg'] as int),
+                        child: Text(item['emoji'].toString(),
+                            style: const TextStyle(fontSize: 22)),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text(
               'Trending Party Rooms (Tap to Join)',
               style: TextStyle(
@@ -159,7 +213,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
@@ -204,7 +258,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
               onPressed: () => _enterRoom(),
               icon: const Icon(Icons.mic),
               label: const Text(
-                'Create / Join Live Room',
+                'Enter VIP Live Room',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
@@ -226,6 +280,7 @@ class LiveRoomScreen extends StatefulWidget {
   final String token;
   final String channelName;
   final String userName;
+  final int avatarIndex;
 
   const LiveRoomScreen({
     super.key,
@@ -233,6 +288,7 @@ class LiveRoomScreen extends StatefulWidget {
     required this.token,
     required this.channelName,
     required this.userName,
+    required this.avatarIndex,
   });
 
   @override
@@ -246,13 +302,33 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
   bool _isMuted = false;
   int _localUid = 0;
   int _coins = 5000;
+  int _themeIndex = 0;
   String? _bannerText;
   Timer? _bannerTimer;
 
   final List _seats = List.filled(9, null);
+  final Map _seatEmojis = {};
   final Set _speakingUids = {};
   final List _messages = [];
   final TextEditingController _chatController = TextEditingController();
+
+  final List _avatars = const [
+    {'emoji': '😎', 'bg': 0xFF4B39EF},
+    {'emoji': '👑', 'bg': 0xFFD97706},
+    {'emoji': '🦊', 'bg': 0xFFEA580C},
+    {'emoji': '🎧', 'bg': 0xFF7C3AED},
+    {'emoji': '🦋', 'bg': 0xFFDB2777},
+    {'emoji': '🦁', 'bg': 0xFFCA8A04},
+    {'emoji': '🚀', 'bg': 0xFF0284C7},
+    {'emoji': '💖', 'bg': 0xFFE11D48},
+  ];
+
+  final List _themes = const [
+    {'name': 'Neon Party', 'c1': 0xFF0E0B1F, 'c2': 0xFF281859},
+    {'name': 'Royal Gold', 'c1': 0xFF1C1408, 'c2': 0xFF4A3208},
+    {'name': 'Galaxy Night', 'c1': 0xFF071526, 'c2': 0xFF163A5F},
+    {'name': 'Love Lounge', 'c1': 0xFF240B1C, 'c2': 0xFF57163E},
+  ];
 
   final List _truthDares = const [
     'Apna favourite gaana 2 line gaakar sunao!',
@@ -290,10 +366,11 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             _isJoined = true;
             _localUid = connection.localUid ?? 0;
             _messages.add({
-              'sender': 'toki.lite',
-              'text': 'Welcome to "${widget.channelName}"!'
+              'sender': 'VIP Entry',
+              'text': '👑 ${widget.userName} entered "${widget.channelName}"!'
             });
           });
+          _showBanner('👑 ${widget.userName} entered the VIP Party!');
           try {
             _streamId = await engine.createDataStream(
               const DataStreamConfig(syncWithAudio: false, ordered: true),
@@ -307,10 +384,14 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           setState(() {
             _messages.add({
               'sender': 'toki.lite',
-              'text': 'Friend (ID: $remoteUid) entered the party!'
+              'text': '✨ Friend (ID: $remoteUid) joined the party!'
             });
           });
-          _broadcast({'type': 'sync_seats', 'seats': _seats});
+          _broadcast({
+            'type': 'sync_state',
+            'seats': _seats,
+            'theme': _themeIndex,
+          });
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
@@ -389,22 +470,34 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           final idx = data['index'] as int;
           _seats[idx] = data['user'] == null ? null : Map.from(data['user']);
           break;
-        case 'sync_seats':
+        case 'sync_state':
           final list = data['seats'] as List;
           for (int i = 0; i < 9 && i < list.length; i++) {
             if (list[i] != null && _seats[i] == null) {
               _seats[i] = Map.from(list[i]);
             }
           }
+          if (data['theme'] != null) {
+            _themeIndex = (data['theme'] as int) % _themes.length;
+          }
+          break;
+        case 'theme':
+          _themeIndex = (data['index'] as int) % _themes.length;
+          _showBanner('🎨 Theme changed to ${_themes[_themeIndex]['name']}!');
+          break;
+        case 'emoji':
+          final sIdx = data['seat'] as int;
+          final emo = data['emoji'].toString();
+          _triggerSeatEmoji(sIdx, emo);
           break;
         case 'gift':
-          final msg = '${data['sender']} sent ${data['gift']}!';
+          final msg = '🎁 ${data['sender']} sent ${data['gift']}!';
           _messages.add({'sender': 'Gift', 'text': msg});
           _showBanner(msg);
           break;
         case 'game':
           final msg = '${data['sender']}: ${data['result']}';
-          _messages.add({'sender': 'Party Game', 'text': msg});
+          _messages.add({'sender': 'Party', 'text': msg});
           _showBanner(msg);
           break;
       }
@@ -419,6 +512,48 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
     });
   }
 
+  void _triggerSeatEmoji(int seatIdx, String emoji) {
+    setState(() => _seatEmojis[seatIdx] = emoji);
+    Timer(const Duration(seconds: 3), () {
+      if (mounted && _seatEmojis[seatIdx] == emoji) {
+        setState(() => _seatEmojis.remove(seatIdx));
+      }
+    });
+  }
+
+  void _sendReaction(String emoji) {
+    int mySeat = -1;
+    for (int i = 0; i < 9; i++) {
+      if (_seats[i] != null && _seats[i]['uid'] == _localUid) {
+        mySeat = i;
+        break;
+      }
+    }
+    if (mySeat == -1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pehle kisi Mic Seat par baithein!')),
+      );
+      return;
+    }
+    _triggerSeatEmoji(mySeat, emoji);
+    _broadcast({'type': 'emoji', 'seat': mySeat, 'emoji': emoji});
+  }
+
+  void _playSoundEffect(String label) {
+    final msg = '🔊 ${widget.userName} played $label';
+    setState(() => _messages.add({'sender': 'Sound', 'text': msg}));
+    _showBanner(msg);
+    _broadcast({'type': 'game', 'sender': widget.userName, 'result': label});
+  }
+
+  void _changeTheme() {
+    setState(() {
+      _themeIndex = (_themeIndex + 1) % _themes.length;
+    });
+    _showBanner('🎨 Room Theme: ${_themes[_themeIndex]['name']}');
+    _broadcast({'type': 'theme', 'index': _themeIndex});
+  }
+
   void _takeSeat(int index) {
     for (int i = 0; i < 9; i++) {
       if (_seats[i] != null && _seats[i]['uid'] == _localUid) {
@@ -426,7 +561,11 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
         _broadcast({'type': 'seat', 'index': i, 'user': null});
       }
     }
-    final userObj = {'uid': _localUid, 'name': widget.userName};
+    final userObj = {
+      'uid': _localUid,
+      'name': widget.userName,
+      'avatar': widget.avatarIndex,
+    };
     setState(() => _seats[index] = userObj);
     _broadcast({'type': 'seat', 'index': index, 'user': userObj});
   }
@@ -450,17 +589,17 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
       _coins -= cost;
       _messages.add({
         'sender': 'Gift',
-        'text': '${widget.userName} sent $gift!',
+        'text': '🎁 ${widget.userName} sent $gift!',
       });
     });
-    _showBanner('${widget.userName} sent $gift!');
+    _showBanner('🎁 ${widget.userName} sent $gift!');
     _broadcast({'type': 'gift', 'sender': widget.userName, 'gift': gift});
     Navigator.pop(context);
   }
 
   void _playDice() {
     final dice = Random().nextInt(6) + 1;
-    final result = 'Ludo Dice: $dice';
+    final result = '🎲 Ludo Dice: $dice';
     setState(() {
       _messages.add({
         'sender': 'Party Game',
@@ -473,7 +612,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
   void _playTruthDare() {
     final task = _truthDares[Random().nextInt(_truthDares.length)];
-    final result = 'Dare: $task';
+    final result = '🎯 Dare: $task';
     setState(() {
       _messages.add({
         'sender': 'Party Game',
@@ -499,9 +638,9 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Toki Gifts',
+                const Text('Toki VIP Gifts',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Text('Coins: $_coins',
+                Text('🪙 $_coins',
                     style: const TextStyle(
                         color: Colors.amber, fontWeight: FontWeight.bold)),
               ],
@@ -510,10 +649,10 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _giftButton('Rose', 10),
-                _giftButton('Crown', 100),
-                _giftButton('Car', 500),
-                _giftButton('Rocket', 1000),
+                _giftButton('🌹 Rose', 10),
+                _giftButton('👑 Crown', 100),
+                _giftButton('🏎️ Car', 500),
+                _giftButton('🚀 Rocket', 1000),
               ],
             ),
             const SizedBox(height: 12),
@@ -535,7 +674,7 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
         ),
         child: Column(
           children: [
-            const Icon(Icons.card_giftcard, color: Colors.pinkAccent, size: 28),
+            const Icon(Icons.card_giftcard, color: Colors.pinkAccent, size: 26),
             const SizedBox(height: 4),
             Text(label, style: const TextStyle(fontSize: 12)),
             Text('$cost',
@@ -562,20 +701,28 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentTheme = _themes[_themeIndex];
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF4B39EF),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.channelName, style: const TextStyle(fontSize: 16)),
+            Text(widget.channelName, style: const TextStyle(fontSize: 15)),
             Text(
-              _isJoined ? 'Live Voice Connected' : 'Connecting...',
+              _isJoined
+                  ? '${currentTheme['name']} • Live'
+                  : 'Connecting...',
               style: const TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: _changeTheme,
+            icon: const Icon(Icons.palette),
+            tooltip: 'Change Room Theme',
+          ),
           IconButton(
             onPressed: _playDice,
             icon: const Icon(Icons.casino),
@@ -588,196 +735,139 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
           ),
           Center(
             child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Text('$_coins',
+              padding: const EdgeInsets.only(right: 10),
+              child: Text('🪙$_coins',
                   style: const TextStyle(
-                      color: Colors.amber, fontWeight: FontWeight.bold)),
+                      fontSize: 12,
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (_bannerText != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFF4081), Color(0xFF4B39EF)],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(currentTheme['c1'] as int),
+              Color(currentTheme['c2'] as int),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            if (_bannerText != null)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 9, horizontal: 16),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFFF4081), Color(0xFF4B39EF)],
+                  ),
+                ),
+                child: Text(
+                  _bannerText!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ),
-              child: Text(
-                _bannerText!,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 9,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 1.05,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemBuilder: (context, index) {
-                final occupant = _seats[index];
-                final isOccupied = occupant != null;
-                final uid = isOccupied ? occupant['uid'] : null;
-                final isSpeaking = uid != null && _speakingUids.contains(uid);
-                final isMe = uid == _localUid;
-                final isHostSeat = index == 0;
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 9,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 1.08,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemBuilder: (context, index) {
+                  final occupant = _seats[index];
+                  final isOccupied = occupant != null;
+                  final uid = isOccupied ? occupant['uid'] : null;
+                  final isSpeaking = uid != null && _speakingUids.contains(uid);
+                  final isMe = uid == _localUid;
+                  final isHostSeat = index == 0;
+                  final avIdx = isOccupied
+                      ? ((occupant['avatar'] ?? 0) as int) % _avatars.length
+                      : 0;
+                  final avData = _avatars[avIdx];
+                  final activeEmoji = _seatEmojis[index];
 
-                return GestureDetector(
-                  onTap: () {
-                    if (!isOccupied) {
-                      _takeSeat(index);
-                    } else if (isMe) {
-                      _leaveSeat(index);
-                    }
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1533),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSpeaking
-                            ? Colors.greenAccent
-                            : (isHostSeat
-                                ? Colors.amber
-                                : (isOccupied
-                                    ? const Color(0xFF4B39EF)
-                                    : Colors.white12)),
-                        width: isSpeaking ? 2.5 : 1.3,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  return GestureDetector(
+                    onTap: () {
+                      if (!isOccupied) {
+                        _takeSeat(index);
+                      } else if (isMe) {
+                        _leaveSeat(index);
+                      }
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: isHostSeat
-                              ? Colors.amber.shade700
-                              : (isOccupied
-                                  ? const Color(0xFF4B39EF)
-                                  : Colors.white10),
-                          child: Icon(
-                            isHostSeat
-                                ? Icons.star
-                                : (isOccupied ? Icons.person : Icons.mic_none),
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          isOccupied
-                              ? occupant['name'].toString()
-                              : (isHostSeat ? 'Host Seat' : 'Seat ${index + 1}'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: isOccupied
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isOccupied ? Colors.white : Colors.white54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const Divider(height: 1, color: Colors.white12),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1533),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${msg['sender']}: ',
-                            style: const TextStyle(
-                              color: Color(0xFF9D8DF1),
-                              fontWeight: FontWeight.bold,
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.black38,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSpeaking
+                                  ? Colors.greenAccent
+                                  : (isHostSeat
+                                      ? Colors.amber
+                                      : (isOccupied
+                                          ? const Color(0xFF4B39EF)
+                                          : Colors.white12)),
+                              width: isSpeaking ? 2.8 : 1.4,
                             ),
                           ),
-                          TextSpan(
-                            text: msg['text'],
-                            style: const TextStyle(color: Colors.white),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: isOccupied
+                                    ? Color(avData['bg'] as int)
+                                    : (isHostSeat
+                                        ? Colors.amber.shade800
+                                        : Colors.white10),
+                                child: isOccupied
+                                    ? Text(avData['emoji'].toString(),
+                                        style: const TextStyle(fontSize: 22))
+                                    : Icon(
+                                        isHostSeat
+                                            ? Icons.star
+                                            : Icons.mic_none,
+                                        color: Colors.white70,
+                                      ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                isOccupied
+                                    ? occupant['name'].toString()
+                                    : (isHostSeat
+                                        ? '👑 Host'
+                                        : 'Seat ${index + 1}'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isOccupied
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isOccupied
+                                      ? Colors.white
+                                      : Colors.white54,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            color: const Color(0xFF15112B),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _chatController,
-                    decoration: InputDecoration(
-                      hintText: 'Say something in party...',
-                      filled: true,
-                      fillColor: const Color(0xFF231D42),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    onSubmitted: (_) => _sendChat(),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  onPressed: _sendChat,
-                  icon: const Icon(Icons.send, color: Color(0xFF4B39EF)),
-                ),
-                IconButton(
-                  onPressed: _toggleMute,
-                  icon: Icon(
-                    _isMuted ? Icons.mic_off : Icons.mic,
-                    color: _isMuted ? Colors.redAccent : Colors.greenAccent,
-                  ),
-                ),
-                IconButton(
-                  onPressed: _openGifts,
-                  icon: const Icon(Icons.card_giftcard,
-                      color: Colors.pinkAccent),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+                        ),
+                        if (activeEmoji != null)
+       
