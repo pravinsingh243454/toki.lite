@@ -775,4 +775,39 @@ class _LiveRoomScreenState extends State<LiveRoomScreen> {
                   ),
                   IconButton(
                     onPressed: _toggleMute,
+                                       icon: Icon(
+                      _isMuted ? Icons.mic_off : Icons.mic,
+                      color: _isMuted ? Colors.redAccent : Colors.greenAccent,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _openGifts,
+                    icon: const Icon(Icons.card_giftcard, color: Colors.pinkAccent),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickChip(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black45,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 13)),
+      ),
+    );
+  }
+}
+
    
