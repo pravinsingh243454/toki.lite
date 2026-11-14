@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TokiMeScreen extends StatefulWidget {
-  final String userName;
-  final String phone;
-  final String lang;
-  final int coins;
-  final int selectedAvatar;
+  final String userName, phone, lang;
+  final int coins, selectedAvatar;
   final Function(String name) onNameChanged;
   final Function(int avatarIdx) onAvatarChanged;
   final Function(int newCoins) onCoinsChanged;
@@ -34,6 +32,7 @@ class TokiMeScreen extends StatefulWidget {
 class _TokiMeScreenState extends State<TokiMeScreen> {
   static const String _phonePeUpi = 'pravinsingh231224@ybl';
   static const String _paytmUpi = 'pravin.3525@ptyes';
+  static const String _adminPhone = '9303323525';
 
   final List _avatars = const [
     {'e': '😎', 'bg': 0xFFFFB74D},
@@ -45,15 +44,12 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
   ];
 
   bool get isHindi => widget.lang == 'Hindi';
+  bool get isAdmin => widget.phone.trim() == _adminPhone;
 
   void _copyUpi(String upiId, String appName) {
     Clipboard.setData(ClipboardData(text: upiId));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isHindi
-            ? '✅ $appName UPI कॉपी हो गया: $upiId'
-            : '✅ $appName UPI Copied: $upiId'),
-      ),
+      SnackBar(content: Text('✅ $appName UPI Copied: $upiId')),
     );
   }
 
@@ -66,65 +62,25 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isHindi
-                    ? 'नीचे दी गई UPI ID पर $amount भेजें और 12 अंकों का UTR नंबर डालें:'
-                    : 'Send $amount to any UPI ID below and enter 12-digit UTR:',
-                style: const TextStyle(fontSize: 12, color: Colors.black87),
+              ListTile(
+                tileColor: const Color(0xFFF3E5F5),
+                title: const Text('PhonePe: $_phonePeUpi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                trailing: TextButton(onPressed: () => _copyUpi(_phonePeUpi, 'PhonePe'), child: const Text('Copy')),
+              ),
+              const SizedBox(height: 6),
+              ListTile(
+                tileColor: const Color(0xFFE1F5FE),
+                title: const Text('Paytm: $_paytmUpi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                trailing: TextButton(onPressed: () => _copyUpi(_paytmUpi, 'Paytm'), child: const Text('Copy')),
               ),
               const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E5F5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'PhonePe:\n$_phonePeUpi',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => _copyUpi(_phonePeUpi, 'PhonePe'),
-                      child: const Text('Copy'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE1F5FE),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Paytm:\n$_paytmUpi',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => _copyUpi(_paytmUpi, 'Paytm'),
-                      child: const Text('Copy'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
               TextField(
                 controller: utrCtrl,
                 keyboardType: TextInputType.number,
                 maxLength: 12,
                 decoration: InputDecoration(
-                  labelText: isHindi ? '12 अंकों का UTR / Ref नंबर' : '12-Digit UTR Number',
+                  labelText: isHindi ? '12 अंकों का UTR नंबर' : '12-Digit UTR Number',
                   counterText: '',
                   border: const OutlineInputBorder(),
                 ),
@@ -133,37 +89,29 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(isHindi ? 'रद्द करें' : 'Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF7A30),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              if (utrCtrl.text.trim().length < 8) {
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
+            onPressed: () async {
+              final utr = utrCtrl.text.trim();
+              if (utr.length < 8) return;
+              await FirebaseFirestore.instance.collection('payments').add({
+                'userName': widget.userName,
+                'phone': widget.phone,
+                'amount': amount,
+                'coins': coinsToAdd,
+                'utr': utr,
+                'status': 'pending',
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(isHindi
-                        ? '⚠️ कृपया सही UTR नंबर डालें'
-                        : '⚠️ Please enter valid UTR number'),
-                  ),
+                  SnackBar(content: Text('⏳ Request Sent! Admin approve karte hi +$coinsToAdd Coins milenge')),
                 );
-                return;
               }
-              widget.onCoinsChanged(widget.coins + coinsToAdd);
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(isHindi
-                      ? '🎉 पेमेंट सबमिट! +$coinsToAdd कॉइन्स जुड़ गए'
-                      : '🎉 Payment Submitted! +$coinsToAdd Coins added'),
-                ),
-              );
             },
-            child: Text(isHindi ? 'पेमेंट कन्फ़र्म करें' : 'Confirm Payment'),
+            child: const Text('Submit'),
           ),
         ],
       ),
@@ -172,128 +120,30 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
 
   void _openRechargeSheet() {
     final packs = [
-      {'rs': '₹10', 'coins': 100, 'bonus': '+10 Free'},
-      {'rs': '₹50', 'coins': 550, 'bonus': '+50 Free'},
-      {'rs': '₹100', 'coins': 1200, 'bonus': '+200 Free'},
-      {'rs': '₹500', 'coins': 6500, 'bonus': '+1500 Free'},
+      {'rs': '₹10', 'coins': 100},
+      {'rs': '₹50', 'coins': 550},
+      {'rs': '₹100', 'coins': 1200},
+      {'rs': '₹500', 'coins': 6500},
     ];
-
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isHindi ? '🪙 कॉइन रिचार्ज (PhonePe / Paytm)' : '🪙 Coin Recharge (UPI)',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          children: packs.map((p) => ListTile(
+            leading: const Text('🪙', style: TextStyle(fontSize: 22)),
+            title: Text('${p['coins']} Coins', style: const TextStyle(fontWeight: FontWeight.bold)),
+            trailing: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5F259F), foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openUpiPaymentDialog(p['rs'].toString(), p['coins'] as int);
+              },
+              child: Text(p['rs'].toString()),
             ),
-            const SizedBox(height: 10),
-            ...packs.map((p) => Card(
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFFFFF3E0),
-                      child: Text('🪙', style: TextStyle(fontSize: 20)),
-                    ),
-                    title: Text('${p['coins']} Coins (${p['bonus']})',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('PhonePe • Paytm UPI'),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5F259F),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _openUpiPaymentDialog(
-                            p['rs'].toString(), p['coins'] as int);
-                      },
-                      child: Text(p['rs'].toString()),
-                    ),
-                  ),
-                )),
-          ],
+          )).toList(),
         ),
-      ),
-    );
-  }
-
-  void _openEditName() {
-    final ctrl = TextEditingController(text: widget.userName);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isHindi ? 'अपना नाम बदलें' : 'Edit Your Name'),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(isHindi ? 'रद्द करें' : 'Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF7A30),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              if (ctrl.text.trim().isNotEmpty) {
-                widget.onNameChanged(ctrl.text.trim());
-              }
-              Navigator.pop(ctx);
-            },
-            child: Text(isHindi ? 'सेव करें' : 'Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openHelpDialog() {
-    final msgCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isHindi ? '📩 सहायता और शिकायत' : '📩 Help & Complaint'),
-        content: TextField(
-          controller: msgCtrl,
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: isHindi
-                ? 'अपनी समस्या या शिकायत यहाँ लिखें...'
-                : 'Write your issue or feedback here...',
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(isHindi ? 'बंद करें' : 'Close'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF7A30),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(isHindi
-                      ? '✅ आपकी शिकायत दर्ज हो गई है!'
-                      : '✅ Your complaint has been submitted!'),
-                ),
-              );
-            },
-            child: Text(isHindi ? 'भेजें' : 'Submit'),
-          ),
-        ],
       ),
     );
   }
@@ -307,45 +157,25 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF7A30), Color(0xFF4B39EF)],
-            ),
+            gradient: const LinearGradient(colors: [Color(0xFFFF7A30), Color(0xFF4B39EF)]),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
             children: [
               CircleAvatar(
-                radius: 34,
+                radius: 32,
                 backgroundColor: Color(curAv['bg'] as int),
-                child: Text(curAv['e'].toString(),
-                    style: const TextStyle(fontSize: 32)),
+                child: Text(curAv['e'].toString(), style: const TextStyle(fontSize: 30)),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          widget.userName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _openEditName,
-                          icon: const Icon(Icons.edit,
-                              color: Colors.white70, size: 18),
-                        ),
-                      ],
-                    ),
+                    Text(widget.userName, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold)),
                     Text(
-                      'ID: ${widget.phone}  •  👑 VIP 1',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 12),
+                      isAdmin ? 'ID: ${widget.phone} • 👑 SUPER ADMIN' : 'ID: ${widget.phone} • 👑 VIP 1',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -353,67 +183,65 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
             ],
           ),
         ),
+        if (isAdmin) ...[
+          const SizedBox(height: 14),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPanelScreen())),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFFFFB300), Color(0xFFFF6F00)]),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                children: [
+                  Text('👑', style: TextStyle(fontSize: 28)),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ADMIN PANEL (Owner Control)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                        Text('UPI UTR Approve • Users • Complaints', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 14),
-        Text(
-          isHindi ? 'अपना अवतार चुनें:' : 'Select Your Avatar:',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(_avatars.length, (i) {
-            final sel = widget.selectedAvatar == i;
-            return GestureDetector(
-              onTap: () => widget.onAvatarChanged(i),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: sel
-                      ? Border.all(color: const Color(0xFFFF7A30), width: 3)
-                      : null,
-                ),
-                child: CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Color(_avatars[i]['bg'] as int),
-                  child: Text(_avatars[i]['e'].toString(),
-                      style: const TextStyle(fontSize: 20)),
-                ),
-              ),
-            );
-          }),
+          children: List.generate(_avatars.length, (i) => GestureDetector(
+            onTap: () => widget.onAvatarChanged(i),
+            child: CircleAvatar(
+              radius: 22,
+              backgroundColor: Color(_avatars[i]['bg'] as int),
+              child: Text(_avatars[i]['e'].toString(), style: const TextStyle(fontSize: 20)),
+            ),
+          )),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
           child: Row(
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(isHindi ? '🪙 मेरा वॉलेट' : '🪙 My Wallet',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  Text('${widget.coins} Coins',
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFF7A30))),
+                  const Text('🪙 मेरा वॉलेट', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('${widget.coins} Coins', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFFF7A30))),
                 ],
               ),
               const Spacer(),
-              ElevatedButton.icon(
+              ElevatedButton(
                 onPressed: _openRechargeSheet,
-                icon: const Icon(Icons.account_balance_wallet, size: 18),
-                label: Text(isHindi ? 'रिचार्ज (UPI)' : 'Recharge'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5F259F),
-                  foregroundColor: Colors.white,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5F259F), foregroundColor: Colors.white),
+                child: const Text('रिचार्ज (UPI)'),
               ),
             ],
           ),
@@ -425,33 +253,100 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.language, color: Color(0xFF4B39EF)),
-                title: Text(isHindi ? 'भाषा (Language)' : 'Language'),
-                trailing: Text(widget.lang,
-                    style: const TextStyle(
-                        color: Color(0xFFFF7A30), fontWeight: FontWeight.bold)),
-                onTap: () =>
-                    widget.onLangChanged(isHindi ? 'English' : 'Hindi'),
+                title: const Text('भाषा (Language)'),
+                trailing: Text(widget.lang, style: const TextStyle(color: Color(0xFFFF7A30), fontWeight: FontWeight.bold)),
+                onTap: () => widget.onLangChanged(isHindi ? 'English' : 'Hindi'),
               ),
-              const Divider(height: 1),
-              ListTile(
-                leading:
-                    const Icon(Icons.support_agent, color: Color(0xFFFF7A30)),
-                title: Text(
-                    isHindi ? 'सहायता और शिकायत (Help)' : 'Help & Complaint'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _openHelpDialog,
-              ),
-              const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
-                title: Text(isHindi ? 'लॉगआउट (Logout)' : 'Logout',
-                    style: const TextStyle(color: Colors.red)),
+                title: const Text('लॉगआउट (Logout)', style: TextStyle(color: Colors.red)),
                 onTap: widget.onLogout,
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class AdminPanelScreen extends StatelessWidget {
+  const AdminPanelScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF4B39EF),
+          foregroundColor: Colors.white,
+          title: const Text('👑 Admin Control Panel'),
+          bottom: const TabBar(
+            labelColor: Colors.white,
+            tabs: [Tab(text: '💰 UPI UTR'), Tab(text: '👥 Users')],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('payments').snapshots(),
+              builder: (context, snap) {
+                if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                final docs = snap.data!.docs;
+                if (docs.isEmpty) return const Center(child: Text('Abhi koi UPI request nahi hai'));
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: docs.length,
+                  itemBuilder: (_, i) {
+                    final d = docs[i];
+                    final m = d.data() as Map<String, dynamic>;
+                    final status = (m['status'] ?? 'pending').toString();
+                    return Card(
+                      child: ListTile(
+                        title: Text('${m['userName']} (${m['phone']}) • ${m['amount']}'),
+                        subtitle: Text('UTR: ${m['utr']} • +${m['coins']} Coins\nStatus: $status'),
+                        trailing: status == 'pending'
+                            ? ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                                onPressed: () async {
+                                  await FirebaseFirestore.instance.collection('users').doc(m['phone'].toString()).set({
+                                    'coins': FieldValue.increment((m['coins'] ?? 0) as int),
+                                  }, SetOptions(merge: true));
+                                  await d.reference.update({'status': 'approved'});
+                                },
+                                child: const Text('Approve'),
+                              )
+                            : const Icon(Icons.check_circle, color: Colors.green),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('users').snapshots(),
+              builder: (context, snap) {
+                if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                final docs = snap.data!.docs;
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: docs.length,
+                  itemBuilder: (_, i) {
+                    final u = docs[i].data() as Map<String, dynamic>;
+                    return Card(
+                      child: ListTile(
+                        title: Text('${u['name'] ?? 'User'} (${docs[i].id})'),
+                        subtitle: Text('🪙 Coins: ${u['coins'] ?? 0}'),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
