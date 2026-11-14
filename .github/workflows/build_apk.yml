@@ -24,12 +24,30 @@ jobs:
           flutter-version: '3.24.5'
           channel: 'stable'
 
-      - name: Prepare Clean Flutter Project
+      - name: Prepare Clean Flutter Project with Firebase
         run: |
-          flutter create /tmp/toki_build --project-name toki_lite
+          flutter create --org com.pravin --project-name tokilite /tmp/toki_build
           cp pubspec.yaml /tmp/toki_build/pubspec.yaml
           mkdir -p /tmp/toki_build/lib
           cp -r lib/* /tmp/toki_build/lib/
+          cp android/app/google-services.json /tmp/toki_build/android/app/google-services.json
+
+          python3 -c '
+          import re
+          with open("/tmp/toki_build/android/settings.gradle", "r") as f:
+              s = f.read()
+          if "google-services" not in s:
+              s = re.sub(r"(id\s+[\"'\'']com\.android\.application[\"'\''].*)", r"\1\n    id \"com.google.gms.google-services\" version \"4.4.2\" apply false", s)
+              with open("/tmp/toki_build/android/settings.gradle", "w") as f:
+                  f.write(s)
+
+          with open("/tmp/toki_build/android/app/build.gradle", "r") as f:
+              b = f.read()
+          if "google-services" not in b:
+              b = re.sub(r"(id\s+[\"'\'']com\.android\.application[\"'\''])", r"\1\n    id \"com.google.gms.google-services\"", b)
+              with open("/tmp/toki_build/android/app/build.gradle", "w") as f:
+                  f.write(b)
+          '
 
       - name: Add Microphone Permissions
         run: |
