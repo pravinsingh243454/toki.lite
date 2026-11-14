@@ -23,9 +23,11 @@ class TokiHomeTabs extends StatefulWidget {
 }
 
 class _TokiHomeTabsState extends State<TokiHomeTabs> {
-  String _cat = 'All', _mTag = 'All', _postTag = '#Shayari';
-  bool _claimed = false;
+  String _cat = 'All', _postTag = '#Shayari';
+  bool _claimed = false, _isVip = false;
   final _postCtrl = TextEditingController();
+
+  String get _vipName => _isVip ? '👑 [VIP] ${widget.userName}' : widget.userName;
 
   void _openRoom(String t) {
     Navigator.push(
@@ -33,13 +35,28 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
       MaterialPageRoute(
         builder: (_) => PartyRoomScreen(
           roomTitle: t,
-          userName: widget.userName,
-          userEmoji: widget.userEmoji,
+          userName: _vipName,
+          userEmoji: _isVip ? '👑' : widget.userEmoji,
           userBg: widget.userBg,
           coins: widget.coins,
           onCoins: widget.onCoins,
         ),
       ),
+    );
+  }
+
+  void _buyVip() {
+    if (_isVip) return;
+    if (widget.coins < 300) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ VIP ke liye 300 Coins chahiye!')),
+      );
+      return;
+    }
+    setState(() => _isVip = true);
+    widget.onCoins(widget.coins - 300);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('🎉 Mubarak ho! Aap ab Royal VIP hain 👑')),
     );
   }
 
@@ -58,11 +75,11 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
           ElevatedButton(
             onPressed: () async {
               final t = c.text.trim().isEmpty
-                  ? '${widget.userName} Room'
+                  ? '$_vipName Room'
                   : c.text.trim();
               await FirebaseFirestore.instance
                   .collection('rooms')
-                  .add({'title': t, 'host': widget.userName, 'cat': 'Chat'});
+                  .add({'title': t, 'host': _vipName, 'cat': 'Chat'});
               if (ctx.mounted) Navigator.pop(ctx);
               _openRoom(t);
             },
@@ -133,7 +150,7 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
                       await FirebaseFirestore.instance
                           .collection('dm_$id')
                           .add({
-                        'sender': widget.userName,
+                        'sender': _vipName,
                         'text': '🎁 Sent a 🌹 Rose (-10 🪙)',
                         'ts': FieldValue.serverTimestamp(),
                       });
@@ -152,7 +169,7 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
                       await FirebaseFirestore.instance
                           .collection('dm_$id')
                           .add({
-                        'sender': widget.userName,
+                        'sender': _vipName,
                         'text': c.text.trim(),
                         'ts': FieldValue.serverTimestamp(),
                       });
@@ -191,6 +208,31 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
             trailing: ElevatedButton(
               onPressed: () => _openRoom('⚡ Quick Voice Match'),
               child: const Text('Call Now'),
+            ),
+          ),
+        ),
+        Card(
+          color: const Color(0xFF2B1E16),
+          child: ListTile(
+            leading: const Text('👑', style: TextStyle(fontSize: 28)),
+            title: Text(
+              _isVip ? 'Royal VIP Active 👑' : 'Become Toki VIP 👑',
+              style: const TextStyle(
+                color: Colors.amber,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: const Text(
+              'Golden Badge + VIP Room Entry!',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            trailing: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isVip ? Colors.green : Colors.amber,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: _buyVip,
+              child: Text(_isVip ? 'VIP ✅' : '300 🪙'),
             ),
           ),
         ),
@@ -254,8 +296,8 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
                 onPressed: () async {
                   if (_postCtrl.text.trim().isEmpty) return;
                   await FirebaseFirestore.instance.collection('moments').add({
-                    'user': widget.userName,
-                    'emoji': widget.userEmoji,
+                    'user': _vipName,
+                    'emoji': _isVip ? '👑' : widget.userEmoji,
                     'text': _postCtrl.text.trim(),
                     'tag': _postTag,
                     'likes': 1,
@@ -372,7 +414,7 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
               style: TextStyle(color: Colors.white),
             ),
             subtitle: Text(
-              'Welcome to Toki Lite!',
+              'Welcome to Toki Lite VIP!',
               style: TextStyle(color: Colors.white70),
             ),
           ),
