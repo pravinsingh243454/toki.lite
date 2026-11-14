@@ -24,8 +24,9 @@ class TokiHomeTabs extends StatefulWidget {
 }
 
 class _TokiHomeTabsState extends State<TokiHomeTabs> {
-  String _postTag = '#Shayari';
+  String _postTag = '#Shayari', _bio = 'Music, Shayari & Live Party 🎙️✨';
   bool _claimed = false, _isVip = false;
+  int _diamonds = 120;
   final _postCtrl = TextEditingController();
   static const _upi1 = 'Pravinsingh231224@ybl', _upi2 = 'pravin.3525@ptyes';
 
@@ -188,11 +189,46 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
     ]);
   }
 
+  Widget _buildMe() {
+    final lv = (widget.coins ~/ 100) + 1;
+    return ListView(padding: const EdgeInsets.all(12), children: [
+      Card(color: const Color(0xFF1E1E2C), child: Padding(padding: const EdgeInsets.all(14), child: Column(children: [
+        Row(children: [
+          Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: _isVip ? Colors.amber : const Color(0xFFFF7A30), width: 3)), child: CircleAvatar(radius: 26, backgroundColor: Color(widget.userBg), child: Text(_isVip ? '👑' : widget.userEmoji, style: const TextStyle(fontSize: 24)))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(_vipName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text('🎖️ Wealth Lv.$lv  •  💖 Charm Lv.3', style: const TextStyle(color: Colors.amber, fontSize: 12)),
+            Text(_bio, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          ])),
+          IconButton(icon: const Icon(Icons.edit, color: Colors.amber), onPressed: () {
+            final b = TextEditingController(text: _bio);
+            showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text('✏️ Edit Bio'), content: TextField(controller: b), actions: [ElevatedButton(onPressed: () { setState(() => _bio = b.text.trim()); Navigator.pop(ctx); }, child: const Text('Save'))]));
+          }),
+        ]),
+        const Divider(color: Colors.white24),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: const [
+          Text('128\nFollowers', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
+          Text('64\nFollowing', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
+          Text('42 👀\nVisitors', textAlign: TextAlign.center, style: TextStyle(color: Colors.amber, fontSize: 12)),
+        ]),
+      ]))),
+      Row(children: [
+        Expanded(child: Card(child: ListTile(title: Text('🪙 ${widget.coins}', style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('My Coins'), onTap: () => _openUpiPay('500 Coins', '₹49', '49')))),
+        Expanded(child: Card(child: ListTile(title: Text('💎 $_diamonds', style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('Withdraw'), onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('💎 Min 500 Diamonds par UPI Withdraw khulega!')))))),
+      ]),
+      Card(child: ListTile(leading: const Text('🎒', style: TextStyle(fontSize: 22)), title: const Text('My Backpack & VIP Frame'), subtitle: Text(_isVip ? '👑 Royal VIP Frame Equipped' : 'Buy VIP to unlock Royal Frame'), onTap: () => _openUpiPay('VIP', '₹99', '99'))),
+      Card(child: ListTile(leading: const Text('🎁', style: TextStyle(fontSize: 22)), title: const Text('Invite Friends (+100 🪙)'), subtitle: const Text('Share Toki Lite & earn free coins'), onTap: () { widget.onCoins(widget.coins + 100); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🎉 Referral Link Copied! +100 Coins Added'))); })),
+      Card(child: ListTile(leading: const Icon(Icons.admin_panel_settings, color: Colors.amber), title: const Text('👑 Admin Payment Panel (PIN)'), onTap: _openAdmin)),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.tabIndex == 1) return _buildMoments();
     if (widget.tabIndex == 2) return _buildRooms();
     if (widget.tabIndex == 3) return _buildMessages();
+    if (widget.tabIndex == 4) return _buildMe();
     return _buildHome();
   }
 }
