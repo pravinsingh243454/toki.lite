@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "31683256102",
+    "project_id": "toki-lite-8f2fe",
+    "storage_bucket": "toki-lite-8f2fe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:31683256102:android:760f62a594e65d56486be7",
+        "android_client_info": {
+          "package_name": "com.pravin.tokilite"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBsnxTB1DA1zLLXPRytIHsLsP8HwOPZ6cg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
