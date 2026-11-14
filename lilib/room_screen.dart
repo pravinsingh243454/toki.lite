@@ -27,11 +27,11 @@ class _PartyRoomScreenState extends State<PartyRoomScreen> {
   bool _micOn = true;
   int _mySeat = 0;
   final _msgCtrl = TextEditingController();
-  final List> _msgs = [
+  final List _msgs = [
     {'user': 'System', 'text': '🎉 Party Room mein aapka swagat hai!'},
   ];
 
-  final List> _seats = [
+  final List _seats = [
     {'name': 'Host', 'e': '👑', 'bg': 0xFFFFB74D},
     {'name': 'Riya', 'e': '🌸', 'bg': 0xFFF48FB1},
     {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
