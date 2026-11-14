@@ -32,22 +32,8 @@ jobs:
           cp -r lib/* /tmp/toki_build/lib/
           cp android/app/google-services.json /tmp/toki_build/android/app/google-services.json
 
-          python3 -c '
-          import re
-          with open("/tmp/toki_build/android/settings.gradle", "r") as f:
-              s = f.read()
-          if "google-services" not in s:
-              s = re.sub(r"(id\s+[\"'\'']com\.android\.application[\"'\''].*)", r"\1\n    id \"com.google.gms.google-services\" version \"4.4.2\" apply false", s)
-              with open("/tmp/toki_build/android/settings.gradle", "w") as f:
-                  f.write(s)
-
-          with open("/tmp/toki_build/android/app/build.gradle", "r") as f:
-              b = f.read()
-          if "google-services" not in b:
-              b = re.sub(r"(id\s+[\"'\'']com\.android\.application[\"'\''])", r"\1\n    id \"com.google.gms.google-services\"", b)
-              with open("/tmp/toki_build/android/app/build.gradle", "w") as f:
-                  f.write(b)
-          '
+          sed -i '/com.android.application/a \    id '\''com.google.gms.google-services'\'' version '\''4.4.2'\'' apply false' /tmp/toki_build/android/settings.gradle
+          sed -i '/com.android.application/a \    id '\''com.google.gms.google-services'\''' /tmp/toki_build/android/app/build.gradle
 
       - name: Add Microphone Permissions
         run: |
