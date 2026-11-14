@@ -26,7 +26,6 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
   String _cat = 'All', _mTag = 'All', _postTag = '#Shayari';
   bool _claimed = false;
   final _postCtrl = TextEditingController();
-  final _msgCtrl = TextEditingController();
 
   void _openRoom(String title) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => PartyRoomScreen(
@@ -87,7 +86,57 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
     ));
   }
 
-  Widget _buildHome() {
+  void _openDirectChat(String friendName, String friendEmoji) {
+    final cCtrl = TextEditingController();
+    final chatId = friendName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+    Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E1E2C),
+        foregroundColor: Colors.white,
+        title: Row(children: [Text(friendEmoji), const SizedBox(width: 8), Text('$friendName 🟢', style: const TextStyle(fontSize: 16))]),
+        actions: [
+          IconButton(icon: const Icon(Icons.call, color: Colors.greenAccent), onPressed: () => _openRoom('📞 Private Call: $friendName')),
+        ],
+      ),
+      body: Column(children: [
+        Expanded(child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('dm_$chatId').orderBy('ts', descending: true).snapshots(),
+          builder: (_, snap) {
+            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+            final docs = snap.data!.docs;
+            if (docs.isEmpty) return Center(child: Text('👋 $friendName ko pehla message ya Rose bhejein!'));
+            return ListView.builder(reverse: true, padding: const EdgeInsets.all(12), itemCount: docs.length, itemBuilder: (_, i) {
+              final m = docs[i].data() as Map<String, dynamic>;
+              final isMe = m['sender'] == widget.userName;
+              return Align(
+                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(color: isMe ? const Color(0xFFFF7A30) : Colors.grey.shade200, borderRadius: BorderRadius.circular(14)),
+                  child: Text('${m['text']}', style: TextStyle(color: isMe ? Colors.white : Colors.black87)),
+                ),
+              );
+            });
+          },
+        )),
+        Container(padding: const EdgeInsets.all(8), color: Colors.white, child: Row(children: [
+          IconButton(icon: const Text('🌹', style: TextStyle(fontSize: 22)), onPressed: () async {
+            if (widget.coins < 10) return;
+            widget.onCoins(widget.coins - 10);
+            await FirebaseFirestore.instance.collection('dm_$chatId').add({'sender': widget.userName, 'text': '🎁 Sent a 🌹 Rose (-10 🪙)', 'ts': FieldValue.serverTimestamp()});
+          }),
+          Expanded(child: TextField(controller: cCtrl, decoration: const InputDecoration(hintText: 'Message likhein...', border: InputBorder.none))),
+          IconButton(icon: const Icon(Icons.send, color: Color(0xFFFF7A30)), onPressed: () async {
+            if (cCtrl.text.trim().isEmpty) return;
+            await FirebaseFirestore.instance.collection('dm_$chatId').add({'sender': widget.userName, 'text': cCtrl.text.trim(), 'ts': FieldValue.serverTimestamp()});
+            cCtrl.clear();
+          }),
+        ])),
+      ]),
+    )));
+  }
+    Widget _buildHome() {
     final users = [
       {'name': 'Riya Sharma', 'age': '21', 'dist': '1.2 km', 'emoji': '🌸', 'bio': 'Music & Late night talks 🎧'},
       {'name': 'Simran Kaur', 'age': '22', 'dist': '2.5 km', 'emoji': '👑', 'bio': 'Shayari aur dosti ❤️'},
@@ -121,7 +170,7 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
         leading: CircleAvatar(backgroundColor: const Color(0xFFFF7A30).withOpacity(0.15), child: Text(u['emoji']!, style: const TextStyle(fontSize: 22))),
         title: Text('${u['name']}, ${u['age']} 🟢', style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text('${u['dist']} • ${u['bio']}'),
-        trailing: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4B39EF), foregroundColor: Colors.white), onPressed: () => _openRoom('💬 Chat with ${u['name']}'), child: const Text('Say Hi 👋')),
+        trailing: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4B39EF), foregroundColor: Colors.white), onPressed: () => _openDirectChat(u['name']!, u['emoji']!), child: const Text('Say Hi 👋')),
       ))),
     ]);
   }
@@ -162,7 +211,7 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
                 Row(children: [
                   CircleAvatar(child: Text((m['emoji'] ?? '😎').toString())), const SizedBox(width: 8),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(user, style: const TextStyle(fontWeight: FontWeight.bold)), Text((m['tag'] ?? '#Shayari').toString(), style: const TextStyle(color: Color(0xFFFF7A30), fontSize: 11))])),
-                  OutlinedButton(onPressed: () => _openRoom('💬 Chat with $user'), child: const Text('Say Hi 👋', style: TextStyle(fontSize: 11))),
+                  OutlinedButton(onPressed: () => _openDirectChat(user, (m['emoji'] ?? '😎').toString()), child: const Text('Say Hi 👋', style: TextStyle(fontSize: 11))),
                 ]),
                 Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text((m['text'] ?? '').toString())),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
@@ -176,12 +225,12 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
               Row(children: [
                 CircleAvatar(child: Text(s['emoji'].toString())), const SizedBox(width: 8),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s['user'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)), Text(s['tag'].toString(), style: const TextStyle(color: Color(0xFFFF7A30), fontSize: 11))])),
-                OutlinedButton(onPressed: () => _openRoom('💬 Chat with ${s['user']}'), child: const Text('Say Hi 👋', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => _openDirectChat(s['user'].toString(), s['emoji'].toString()), child: const Text('Say Hi 👋', style: TextStyle(fontSize: 11))),
               ]),
               Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(s['text'].toString())),
               Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
                 TextButton.icon(onPressed: () {}, icon: const Icon(Icons.favorite, color: Colors.red, size: 18), label: Text('${s['likes']}')),
-                TextButton.icon(onPressed: () => _openRoom('💬 Chat with ${s['user']}'), icon: const Icon(Icons.chat_bubble_outline, size: 18), label: const Text('Reply')),
+                TextButton.icon(onPressed: () => _openDirectChat(s['user'].toString(), s['emoji'].toString()), icon: const Icon(Icons.chat_bubble_outline, size: 18), label: const Text('Reply')),
                 TextButton.icon(onPressed: () { if (widget.coins >= 10) widget.onCoins(widget.coins - 10); }, icon: const Text('🌹', style: TextStyle(fontSize: 16)), label: Text('${s['gifts']}')),
               ]),
             ])))),
@@ -190,77 +239,4 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
       )),
     ]);
   }
-
-  Widget _buildRooms() {
-    final rooms = [
-      {'title': '🔥 Desi Adda & Shayari Night', 'host': 'Riya 🌸', 'cat': 'Chat', 'users': 142},
-      {'title': '🎵 Non-Stop Bollywood Lofi', 'host': 'Aarav 🎧', 'cat': 'Music', 'users': 89},
-      {'title': '❤️ Dil Se Dil Tak (Dating)', 'host': 'Simran 👑', 'cat': 'Dating', 'users': 210},
-    ];
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton.extended(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white, onPressed: _createRoomDialog, icon: const Icon(Icons.mic), label: const Text('Create Room')),
-      body: ListView(padding: const EdgeInsets.all(12), children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: ['All', 'Chat', 'Music', 'Dating'].map((c) => ChoiceChip(
-          label: Text(c), selected: _cat == c, selectedColor: const Color(0xFFFF7A30),
-          labelStyle: TextStyle(color: _cat == c ? Colors.white : Colors.black87, fontWeight: FontWeight.bold), onSelected: (_) => setState(() => _cat = c),
-        )).toList()),
-        const SizedBox(height: 8),
-        ...rooms.where((r) => _cat == 'All' || r['cat'] == _cat).map((r) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(
-          leading: const CircleAvatar(backgroundColor: Color(0xFF1E1E2C), child: Text('🎙️')),
-          title: Text(r['title'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          subtitle: Text('Host: ${r['host']} • ${r['cat']}'),
-          trailing: Text('🟢 ${r['users']}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-          onTap: () => _openRoom(r['title'].toString()),
-        ))),
-        StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('rooms').snapshots(), builder: (context, snap) {
-          if (!snap.hasData) return const SizedBox();
-          return Column(children: snap.data!.docs.map((d) {
-            final m = d.data() as Map<String, dynamic>;
-            return Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(
-              leading: const CircleAvatar(backgroundColor: Color(0xFFFF7A30), child: Text('🔥')),
-              title: Text((m['title'] ?? 'Live Room').toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('Host: ${m['host']} • Live Now'),
-              trailing: const Text('🟢 Join', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              onTap: () => _openRoom((m['title'] ?? 'Live Room').toString()),
-            ));
-          }).toList());
-        }),
-      ]),
-    );
-  }
-
-  Widget _buildMessages() {
-    return Column(children: [
-      Expanded(child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('private_chats').orderBy('ts', descending: true).limit(30).snapshots(),
-        builder: (context, snap) {
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snap.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text('💬 Apne doston ko pehla message bhejein!'));
-          return ListView.builder(reverse: true, padding: const EdgeInsets.all(12), itemCount: docs.length, itemBuilder: (_, i) {
-            final m = docs[i].data() as Map<String, dynamic>;
-            return Card(child: ListTile(leading: CircleAvatar(child: Text((m['emoji'] ?? '😎').toString())), title: Text((m['user'] ?? 'User').toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), subtitle: Text((m['text'] ?? '').toString())));
-          });
-        },
-      )),
-      Padding(padding: const EdgeInsets.all(8), child: Row(children: [
-        Expanded(child: TextField(controller: _msgCtrl, decoration: const InputDecoration(hintText: 'Message likhein...', border: OutlineInputBorder()))),
-        const SizedBox(width: 8),
-        IconButton(icon: const Icon(Icons.send, color: Color(0xFFFF7A30)), onPressed: () async {
-          if (_msgCtrl.text.trim().isEmpty) return;
-          await FirebaseFirestore.instance.collection('private_chats').add({'user': widget.userName, 'emoji': widget.userEmoji, 'text': _msgCtrl.text.trim(), 'ts': FieldValue.serverTimestamp()});
-          _msgCtrl.clear();
-        }),
-      ])),
-    ]);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.tabIndex == 1) return _buildMoments();
-    if (widget.tabIndex == 2) return _buildRooms();
-    if (widget.tabIndex == 3) return _buildMessages();
-    return _buildHome();
-  }
-}
+  
