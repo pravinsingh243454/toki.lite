@@ -1,9 +1,16 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_screen.dart';
 import 'me_screen.dart';
+import 'room_screen.dart';
+import 'chat_screen.dart';
 
-void main() => runApp(const TokiLiteApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const TokiLiteApp());
+}
 
 class TokiLiteApp extends StatefulWidget {
   const TokiLiteApp({super.key});
@@ -112,6 +119,31 @@ class _TokiMainShellState extends State<TokiMainShell> {
     super.initState();
     _myName = widget.initialName;
     _lang = widget.initialLang;
+    _listenUserFromFirestore();
+  }
+
+  void _listenUserFromFirestore() {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.phone)
+        .snapshots()
+        .listen((doc) {
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          _coins = (data['coins'] ?? 500) as int;
+          _myName = (data['name'] ?? _myName).toString();
+          _avatar = (data['avatar'] ?? _avatar) as int;
+        });
+      }
+    });
+  }
+
+  Future<void> _syncUser(Map<String, dynamic> fields) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.phone)
+        .set(fields, SetOptions(merge: true));
   }
 
   void _enterRoom(String title) {
@@ -122,7 +154,10 @@ class _TokiMainShellState extends State<TokiMainShell> {
       userEmoji: av['e'].toString(),
       userBg: av['bg'] as int,
       coins: _coins,
-      onCoins: (v) => setState(() => _coins = v),
+      onCoins: (v) {
+        setState(() => _coins = v);
+        _syncUser({'coins': v});
+      },
     )));
   }
 
@@ -199,10 +234,22 @@ class _TokiMainShellState extends State<TokiMainShell> {
         lang: _lang,
         coins: _coins,
         selectedAvatar: _avatar,
-        onNameChanged: (n) => setState(() => _myName = n),
-        onAvatarChanged: (idx) => setState(() => _avatar = idx),
-        onCoinsChanged: (c) => setState(() => _coins = c),
-        onLangChanged: (l) => setState(() => _lang = l),
+        onNameChanged: (n) {
+          setState(() => _myName = n);
+          _syncUser({'name': n});
+        },
+        onAvatarChanged: (idx) {
+          setState(() => _avatar = idx);
+          _syncUser({'avatar': idx});
+        },
+        onCoinsChanged: (c) {
+          setState(() => _coins = c);
+          _syncUser({'coins': c});
+        },
+        onLangChanged: (l) {
+          setState(() => _lang = l);
+          _syncUser({'lang': l});
+        },
         onLogout: widget.onLogout,
       ),
     ];
@@ -236,6 +283,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
       ),
     );
   }
+
   Widget _homeTab() {
     final list = _users.where((u) => _homeFilter == 1 ? u['new'] == true : (_homeFilter == 2 ? u['feat'] == true : true)).toList();
     return ListView(padding: const EdgeInsets.all(14), children: [
@@ -371,7 +419,11 @@ class _TokiMainShellState extends State<TokiMainShell> {
       ),
       GestureDetector(
         onTap: () {
-          if (!_bonusClaimed) setState(() { _coins += 300; _bonusClaimed = true; });
+          if (!_bonusClaimed) {
+            final updated = _coins + 300;
+            setState(() { _coins = updated; _bonusClaimed = true; });
+            _syncUser({'coins': updated});
+          }
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🪙 Total Coins: $_coins')));
         },
         child: Container(
@@ -404,226 +456,4 @@ class _TokiMainShellState extends State<TokiMainShell> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(r['title'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
-                  Text(r['sub'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  Text(r['tag'].toString(), style: TextStyle(color: Color(r['tc'] as int), fontSize: 11, fontWeight: FontWeight.bold)),
-                ])),
-                Text('📶 ${r['views']}', style: const TextStyle(color: Color(0xFFFF7A30), fontWeight: FontWeight.bold, fontSize: 12)),
-              ]),
-            ),
-          );
-        },
-      )),
-    ]);
-  }
-
-  Widget _messagesTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(14),
-      itemCount: _chats.length,
-      itemBuilder: (_, i) {
-        final c = _chats[i];
-        return Card(
-          color: Colors.white,
-          child: ListTile(
-            leading: CircleAvatar(backgroundColor: const Color(0xFFFF7A30), child: Text(c['e'].toString())),
-            title: Text(c['name'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(c['msg'].toString()),
-            trailing: Text(c['time'].toString(), style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            onTap: () => _openChat(c['name'].toString(), c['e'].toString(), 'welcome everyone 🎶'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class PrivateChatScreen extends StatefulWidget {
-  final String peerName, peerEmoji;
-  final VoidCallback onJoinRoom;
-  const PrivateChatScreen({super.key, required this.peerName, required this.peerEmoji, required this.onJoinRoom});
-
-  @override
-  State<PrivateChatScreen> createState() => _PrivateChatScreenState();
-}
-
-class _PrivateChatScreenState extends State<PrivateChatScreen> {
-  final _ctrl = TextEditingController();
-  final List _msgs = [{'me': false, 't': 'Hi! Kaise ho? Aaj party room mein aao na 🎙️'}];
-
-  void _send() {
-    if (_ctrl.text.trim().isEmpty) return;
-    final t = _ctrl.text.trim();
-    _ctrl.clear();
-    setState(() {
-      _msgs.add({'me': true, 't': t});
-      _msgs.add({'me': false, 't': 'Bilkul! Upar Voice Room dabao 🎶'});
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.peerEmoji} ${widget.peerName}'),
-        actions: [TextButton(onPressed: widget.onJoinRoom, child: const Text('🎙️ Voice Room', style: TextStyle(color: Color(0xFFFF7A30))))],
-      ),
-      body: Column(children: [
-        Expanded(child: ListView.builder(
-          padding: const EdgeInsets.all(14),
-          itemCount: _msgs.length,
-          itemBuilder: (_, i) {
-            final me = _msgs[i]['me'] == true;
-            return Align(
-              alignment: me ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: me ? const Color(0xFFFF7A30) : Colors.white, borderRadius: BorderRadius.circular(14)),
-                child: Text(_msgs[i]['t'].toString(), style: TextStyle(color: me ? Colors.white : Colors.black87)),
-              ),
-            );
-          },
-        )),
-        Padding(padding: const EdgeInsets.all(10), child: Row(children: [
-          Expanded(child: TextField(controller: _ctrl, onSubmitted: (_) => _send(), decoration: const InputDecoration(hintText: 'Message...', filled: true, fillColor: Colors.white, border: OutlineInputBorder()))),
-          IconButton(icon: const Icon(Icons.send, color: Color(0xFFFF7A30)), onPressed: _send),
-        ])),
-      ]),
-    );
-  }
-}
-
-class PartyRoomScreen extends StatefulWidget {
-  final String roomTitle, userName, userEmoji;
-  final int userBg, coins;
-  final ValueChanged onCoins;
-  const PartyRoomScreen({super.key, required this.roomTitle, required this.userName, required this.userEmoji, required this.userBg, required this.coins, required this.onCoins});
-
-  @override
-  State<PartyRoomScreen> createState() => _PartyRoomScreenState();
-}
-
-class _PartyRoomScreenState extends State<PartyRoomScreen> {
-  int _seat = 0, _theme = 0, _dice = 1, _p1 = 0, _p2 = 0;
-  bool _muted = false, _locked = false;
-  late int _coins;
-  final _ctrl = TextEditingController();
-  final _msgs = ['🎉 Welcome to Toki Live Voice Party!'];
-  final _themes = const [[0xFF1E1B4B, 0xFF4B39EF], [0xFF3B0764, 0xFFDB2777], [0xFF064E3B, 0xFF0D9488]];
-  final List _seats = [
-    {'n': 'Host', 'e': '🌸', 'bg': 0xFFF48FB1, 't': true},
-    {'n': 'Seat 2', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
-    {'n': 'Aarav', 'e': '🎧', 'bg': 0xFF90CAF9, 't': true},
-    {'n': 'Seat 4', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
-    {'n': 'Seat 5', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
-    {'n': 'Ananya', 'e': '👑', 'bg': 0xFFCE93D8, 't': true},
-    {'n': 'Seat 7', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
-    {'n': 'Seat 8', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
-    {'n': 'Seat 9', 'e': '🎙️', 'bg': 0xFF334155, 't': false},
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _coins = widget.coins;
-  }
-
-  void _tapSeat(int i) {
-    if (_locked && _seat != i) return;
-    setState(() {
-      if (_seat == i) {
-        _seats[i] = {'n': 'Seat ${i + 1}', 'e': '🎙️', 'bg': 0xFF334155, 't': false};
-        _seat = -1;
-      } else if (_seats[i]['t'] == false) {
-        if (_seat >= 0) _seats[_seat] = {'n': 'Seat ${_seat + 1}', 'e': '🎙️', 'bg': 0xFF334155, 't': false};
-        _seats[i] = {'n': widget.userName, 'e': widget.userEmoji, 'bg': widget.userBg, 't': true};
-        _seat = i;
-      }
-    });
-  }
-
-  void _roll() {
-    final r = Random().nextInt(6) + 1;
-    setState(() {
-      _dice = r;
-      _p1 = (_p1 + r).clamp(0, 30);
-      _p2 = (_p2 + Random().nextInt(6) + 1).clamp(0, 30);
-      _msgs.add('🎲 ${widget.userName} rolled $r ($_p1/30)');
-      if (_p1 >= 30) {
-        _coins += 100;
-        widget.onCoins(_coins);
-        _msgs.add('🏆 ${widget.userName} won Ludo! +100 Coins');
-        _p1 = 0; _p2 = 0;
-      }
-    });
-  }
-
-  void _gift(String g, int cost) {
-    if (_coins < cost) return;
-    setState(() {
-      _coins -= cost;
-      widget.onCoins(_coins);
-      _msgs.add('🎁 ${widget.userName} sent $g (-$cost 🪙)');
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = _themes[_theme];
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(c[0]), Color(c[1])])),
-        child: SafeArea(child: Column(children: [
-          Row(children: [
-            IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back, color: Colors.white)),
-            Expanded(child: Text(widget.roomTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-            Text('🪙 $_coins ', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-            IconButton(onPressed: () => setState(() => _theme = (_theme + 1) % 3), icon: const Icon(Icons.palette, color: Colors.white)),
-            IconButton(onPressed: () => setState(() => _locked = !_locked), icon: Icon(_locked ? Icons.lock : Icons.lock_open, color: Colors.white)),
-          ]),
-          GridView.builder(
-            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), padding: const EdgeInsets.symmetric(horizontal: 14),
-            itemCount: 9,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.2),
-            itemBuilder: (_, i) {
-              final s = _seats[i];
-              return GestureDetector(
-                onTap: () => _tapSeat(i),
-                child: Container(
-                  decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(12), border: _seat == i ? Border.all(color: Colors.amber, width: 2) : null),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    CircleAvatar(radius: 18, backgroundColor: Color(s['bg'] as int), child: Text(s['e'].toString())),
-                    const SizedBox(height: 4),
-                    Text(s['n'].toString(), style: const TextStyle(color: Colors.white, fontSize: 11)),
-                  ]),
-                ),
-              );
-            },
-          ),
-          Container(
-            margin: const EdgeInsets.all(12), padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
-            child: Row(children: [
-              Expanded(child: Text('🎲 Ludo Race: You $_p1/30 • Bot $_p2/30', style: const TextStyle(color: Colors.amberAccent, fontSize: 12))),
-              ElevatedButton(onPressed: _roll, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white), child: Text('Roll ($_dice)')),
-            ]),
-          ),
-          Expanded(child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            itemCount: _msgs.length,
-            itemBuilder: (_, i) => Text(_msgs[i], style: const TextStyle(color: Colors.white, fontSize: 12)),
-          )),
-          Padding(padding: const EdgeInsets.all(10), child: Row(children: [
-            IconButton(onPressed: () => setState(() => _muted = !_muted), icon: Icon(_muted ? Icons.mic_off : Icons.mic, color: _muted ? Colors.redAccent : Colors.greenAccent)),
-            Expanded(child: TextField(controller: _ctrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'Say something...', hintStyle: TextStyle(color: Colors.white54)))),
-            IconButton(onPressed: () { if (_ctrl.text.trim().isNotEmpty) { setState(() => _msgs.add('${widget.userName}: ${_ctrl.text.trim()}')); _ctrl.clear(); } }, icon: const Icon(Icons.send, color: Colors.white)),
-            GestureDetector(onTap: () => _gift('🌹 Rose', 20), child: const Text(' 🌹 ', style: TextStyle(fontSize: 22))),
-            GestureDetector(onTap: () => _gift('👑 Crown', 100), child: const Text(' 👑 ', style: TextStyle(fontSize: 22))),
-          ])),
-        ])),
-      ),
-    );
-  }
-}
+                  Text(r['title'].toString(), maxLines: 1, overflow: 
