@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'room_screen.dart';
 
@@ -23,9 +24,12 @@ class TokiHomeTabs extends StatefulWidget {
 }
 
 class _TokiHomeTabsState extends State<TokiHomeTabs> {
-  String _cat = 'All', _postTag = '#Shayari';
+  String _postTag = '#Shayari';
   bool _claimed = false, _isVip = false;
   final _postCtrl = TextEditingController();
+
+  static const String _upi1 = 'Pravinsingh231224@ybl';
+  static const String _upi2 = 'pravin.3525@ptyes';
 
   String get _vipName => _isVip ? '👑 [VIP] ${widget.userName}' : widget.userName;
 
@@ -45,18 +49,190 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
     );
   }
 
-  void _buyVip() {
-    if (_isVip) return;
-    if (widget.coins < 300) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ VIP ke liye 300 Coins chahiye!')),
-      );
-      return;
-    }
-    setState(() => _isVip = true);
-    widget.onCoins(widget.coins - 300);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('🎉 Mubarak ho! Aap ab Royal VIP hain 👑')),
+  void _openUpiPay(String item, String amount, String numAmt) {
+    final utrCtrl = TextEditingController();
+    final upiUri = Uri.encodeComponent(
+      'upi://pay?pa=$_upi1&pn=TokiLite&am=$numAmt&cu=INR',
+    );
+    final qrUrl =
+        'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=$upiUri';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 14,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '💳 Scan & Pay $amount ($item)',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber, width: 2),
+                ),
+                child: Image.network(qrUrl, height: 150, width: 150),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'PhonePe / Paytm / GPay se QR Scan karein',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              ListTile(
+                dense: true,
+                title: const Text('PhonePe: $_upi1'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.copy, size: 18),
+                  onPressed: () {
+                    Clipboard.setData(const ClipboardData(text: _upi1));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied: $_upi1')),
+                    );
+                  },
+                ),
+              ),
+              ListTile(
+                dense: true,
+                title: const Text('Paytm: $_upi2'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.copy, size: 18),
+                  onPressed: () {
+                    Clipboard.setData(const ClipboardData(text: _upi2));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied: $_upi2')),
+                    );
+                  },
+                ),
+              ),
+              TextField(
+                controller: utrCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  hintText: '12-digit UTR / Ref No. dalein...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF7A30),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
+                  if (utrCtrl.text.trim().length < 6) return;
+                  await FirebaseFirestore.instance.collection('upi_orders').add({
+                    'user': widget.userName,
+                    'item': item,
+                    'amount': amount,
+                    'utr': utrCtrl.text.trim(),
+                    'status': 'Pending',
+                    'ts': FieldValue.serverTimestamp(),
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ UTR Submitted! Admin verify karega.'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Submit UTR for Verification'),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openAdminPayments() {
+    final pinCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: const Text('🔐 Enter Admin PIN'),
+        content: TextField(
+          controller: pinCtrl,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: 'Admin PIN dalein...'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (pinCtrl.text.trim() != '3525' &&
+                  pinCtrl.text.trim() != '9303323525') {
+                return;
+              }
+              Navigator.pop(dCtx);
+              _showOrdersSheet();
+            },
+            child: const Text('Unlock'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOrdersSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('upi_orders').snapshots(),
+        builder: (_, snap) {
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final docs = snap.data!.docs;
+          if (docs.isEmpty) {
+            return const Center(child: Text('Koi payment request nahi hai'));
+          }
+          return ListView.builder(
+            itemCount: docs.length,
+            itemBuilder: (_, i) {
+              final d = docs[i];
+              final m = d.data() as Map<String, dynamic>;
+              return ListTile(
+                title: Text('${m['user']} - ${m['item']} (${m['amount']})'),
+                subtitle: Text('UTR: ${m['utr']} | ${m['status']}'),
+                trailing: m['status'] == 'Pending'
+                    ? ElevatedButton(
+                        onPressed: () {
+                          d.reference.update({'status': 'Approved ✅'});
+                          if (m['user'] == widget.userName) {
+                            if (m['item'] == 'VIP') {
+                              setState(() => _isVip = true);
+                            } else {
+                              widget.onCoins(widget.coins + 500);
+                            }
+                          }
+                        },
+                        child: const Text('Approve'),
+                      )
+                    : const Text('✅'),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -216,23 +392,37 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
           child: ListTile(
             leading: const Text('👑', style: TextStyle(fontSize: 28)),
             title: Text(
-              _isVip ? 'Royal VIP Active 👑' : 'Become Toki VIP 👑',
+              _isVip ? 'Royal VIP Active 👑' : 'Buy Royal VIP (₹99)',
               style: const TextStyle(
                 color: Colors.amber,
                 fontWeight: FontWeight.bold,
               ),
             ),
             subtitle: const Text(
-              'Golden Badge + VIP Room Entry!',
+              'QR Scan / UPI se VIP banein!',
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
             trailing: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isVip ? Colors.green : Colors.amber,
+                backgroundColor: Colors.amber,
                 foregroundColor: Colors.black,
               ),
-              onPressed: _buyVip,
-              child: Text(_isVip ? 'VIP ✅' : '300 🪙'),
+              onPressed: () => _openUpiPay('VIP', '₹99', '99'),
+              child: const Text('Pay ₹99'),
+            ),
+          ),
+        ),
+        Card(
+          color: const Color(0xFF1E1E2C),
+          child: ListTile(
+            leading: const Text('🪙', style: TextStyle(fontSize: 26)),
+            title: const Text(
+              'Buy 500 Coins (₹49)',
+              style: TextStyle(color: Colors.white),
+            ),
+            trailing: ElevatedButton(
+              onPressed: () => _openUpiPay('500 Coins', '₹49', '49'),
+              child: const Text('Pay ₹49'),
             ),
           ),
         ),
@@ -254,6 +444,11 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
               child: Text(_claimed ? 'Done ✅' : 'Claim'),
             ),
           ),
+        ),
+        TextButton.icon(
+          onPressed: _openAdminPayments,
+          icon: const Icon(Icons.lock),
+          label: const Text('👑 Admin: Verify Payments (PIN)'),
         ),
         ...users.map(
           (u) => Card(
@@ -349,9 +544,9 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
 
   Widget _buildRooms() {
     final rooms = [
-      {'title': '🔥 Desi Adda Night', 'host': 'Riya 🌸', 'cat': 'Chat'},
-      {'title': '🎵 Bollywood Lofi', 'host': 'Aarav 🎧', 'cat': 'Music'},
-      {'title': '❤️ Dil Se Dil Tak', 'host': 'Simran 👑', 'cat': 'Dating'},
+      {'title': '🔥 Desi Adda Night', 'host': 'Riya 🌸'},
+      {'title': '🎵 Bollywood Lofi', 'host': 'Aarav 🎧'},
+      {'title': '❤️ Dil Se Dil Tak', 'host': 'Simran 👑'},
     ];
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -376,68 +571,4 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('rooms').snapshots(),
             builder: (_, snap) {
-              if (!snap.hasData) return const SizedBox();
-              return Column(
-                children: snap.data!.docs.map((d) {
-                  final m = d.data() as Map<String, dynamic>;
-                  final t = (m['title'] ?? 'Live Room').toString();
-                  return Card(
-                    child: ListTile(
-                      title: Text(t),
-                      subtitle: Text('Host: ${m['host']}'),
-                      onTap: () => _openRoom(t),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessages() {
-    final friends = [
-      {'name': 'Riya Sharma', 'emoji': '🌸', 'msg': 'Live room me aao 🎙️'},
-      {'name': 'Simran Kaur', 'emoji': '👑', 'msg': 'Mast shayari thi ❤️'},
-      {'name': 'Aarav Singh', 'emoji': '🎧', 'msg': 'Party room me milte hai 🔥'},
-    ];
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        const Card(
-          color: Color(0xFF1E1E2C),
-          child: ListTile(
-            title: Text(
-              '🔔 Toki Official Notice',
-              style: TextStyle(color: Colors.white),
-            ),
-            subtitle: Text(
-              'Welcome to Toki Lite VIP!',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ),
-        ),
-        ...friends.map(
-          (f) => Card(
-            child: ListTile(
-              leading: CircleAvatar(child: Text(f['emoji']!)),
-              title: Text('${f['name']} 🟢'),
-              subtitle: Text(f['msg']!),
-              onTap: () => _openChat(f['name']!, f['emoji']!),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.tabIndex == 1) return _buildMoments();
-    if (widget.tabIndex == 2) return _buildRooms();
-    if (widget.tabIndex == 3) return _buildMessages();
-    return _buildHome();
-  }
-}
+              if (!snap.hasData) return const SizedB
