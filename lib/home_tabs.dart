@@ -59,7 +59,7 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
     final cCtrl = TextEditingController();
     showModalBottomSheet(context: context, isScrollControlled: true, builder: (ctx) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 12, right: 12, top: 12),
-      child: SizedBox(height: 320, child: Column(children: [
+      child: SizedBox(height: 300, child: Column(children: [
         Text('💬 Comments on $author', style: const TextStyle(fontWeight: FontWeight.bold)),
         const Divider(),
         Expanded(child: StreamBuilder<QuerySnapshot>(
@@ -91,12 +91,9 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
     final chatId = friendName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
     Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E2C),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFF1E1E2C), foregroundColor: Colors.white,
         title: Row(children: [Text(friendEmoji), const SizedBox(width: 8), Text('$friendName 🟢', style: const TextStyle(fontSize: 16))]),
-        actions: [
-          IconButton(icon: const Icon(Icons.call, color: Colors.greenAccent), onPressed: () => _openRoom('📞 Private Call: $friendName')),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.call, color: Colors.greenAccent), onPressed: () => _openRoom('📞 Call: $friendName'))],
       ),
       body: Column(children: [
         Expanded(child: StreamBuilder<QuerySnapshot>(
@@ -136,7 +133,8 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
       ]),
     )));
   }
-    Widget _buildHome() {
+
+  Widget _buildHome() {
     final users = [
       {'name': 'Riya Sharma', 'age': '21', 'dist': '1.2 km', 'emoji': '🌸', 'bio': 'Music & Late night talks 🎧'},
       {'name': 'Simran Kaur', 'age': '22', 'dist': '2.5 km', 'emoji': '👑', 'bio': 'Shayari aur dosti ❤️'},
@@ -239,4 +237,60 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
       )),
     ]);
   }
-  
+
+  Widget _buildRooms() {
+    final rooms = [
+      {'title': '🔥 Desi Adda & Shayari Night', 'host': 'Riya 🌸', 'cat': 'Chat', 'users': 142},
+      {'title': '🎵 Non-Stop Bollywood Lofi', 'host': 'Aarav 🎧', 'cat': 'Music', 'users': 89},
+      {'title': '❤️ Dil Se Dil Tak (Dating)', 'host': 'Simran 👑', 'cat': 'Dating', 'users': 210},
+    ];
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton.extended(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white, onPressed: _createRoomDialog, icon: const Icon(Icons.mic), label: const Text('Create Room')),
+      body: ListView(padding: const EdgeInsets.all(12), children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: ['All', 'Chat', 'Music', 'Dating'].map((c) => ChoiceChip(
+          label: Text(c), selected: _cat == c, selectedColor: const Color(0xFFFF7A30),
+          labelStyle: TextStyle(color: _cat == c ? Colors.white : Colors.black87, fontWeight: FontWeight.bold), onSelected: (_) => setState(() => _cat = c),
+        )).toList()),
+        const SizedBox(height: 8),
+        ...rooms.where((r) => _cat == 'All' || r['cat'] == _cat).map((r) => Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(
+          leading: const CircleAvatar(backgroundColor: Color(0xFF1E1E2C), child: Text('🎙️')),
+          title: Text(r['title'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          subtitle: Text('Host: ${r['host']} • ${r['cat']}'),
+          trailing: Text('🟢 ${r['users']}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+          onTap: () => _openRoom(r['title'].toString()),
+        ))),
+        StreamBuilder<QuerySnapshot>(stream: FirebaseFirestore.instance.collection('rooms').snapshots(), builder: (context, snap) {
+          if (!snap.hasData) return const SizedBox();
+          return Column(children: snap.data!.docs.map((d) {
+            final m = d.data() as Map<String, dynamic>;
+            return Card(margin: const EdgeInsets.only(bottom: 10), child: ListTile(
+              leading: const CircleAvatar(backgroundColor: Color(0xFFFF7A30), child: Text('🔥')),
+              title: Text((m['title'] ?? 'Live Room').toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('Host: ${m['host']} • Live Now'),
+              trailing: const Text('🟢 Join', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              onTap: () => _openRoom((m['title'] ?? 'Live Room').toString()),
+            ));
+          }).toList());
+        }),
+      ]),
+    );
+  }
+
+  Widget _buildMessages() {
+    final friends = [
+      {'name': 'Riya Sharma', 'emoji': '🌸', 'msg': 'Hey! Live room mein aa rahe ho kya? 🎙️', 'time': 'Now', 'unread': 2},
+      {'name': 'Simran Kaur', 'emoji': '👑', 'msg': 'Tumhari shayari bahut mast thi ❤️', 'time': '5m', 'unread': 1},
+      {'name': 'Aarav Singh', 'emoji': '🎧', 'msg': 'Aaj raat party room me milte hain 🔥', 'time': '1h', 'unread': 0},
+      {'name': 'Kabir Verma', 'emoji': '🦁', 'msg': 'Bhai lucky spin me 100 coins jeeta! 🎰', 'time': '2h', 'unread': 0},
+    ];
+    return ListView(padding: const EdgeInsets.all(12), children: [
+      Card(color: const Color(0xFF1E1E2C), child: ListTile(
+        leading: const CircleAvatar(backgroundColor: Color(0xFFFF7A30), child: Icon(Icons.notifications_active, color: Colors.white)),
+        title: const Text('🔔 Toki Official & System Notice', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+        subtitle: const Text('Riya & 3 others visited your profile • Welcome bonus active!', style: TextStyle(color: Colors.white70, fontSize: 12)),
+        onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🎉 System Notice: Aapka account 100% Active hai!'))),
+      )),
+      const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('💬 Friends & Direct Messages', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+      ...friends.map((f) => Card(margin: const EdgeInsets.only(bottom: 8), child: ListTile(
+        leading: CircleAvatar(radius: 22, backgroundColor: const Color(0xFFFF7A30).withOpacity(0.15), child: Text(f['emoji'].toString(), style: const Text
