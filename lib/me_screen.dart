@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class TokiMeScreen extends StatefulWidget {
   final String userName;
@@ -31,6 +32,9 @@ class TokiMeScreen extends StatefulWidget {
 }
 
 class _TokiMeScreenState extends State<TokiMeScreen> {
+  static const String _phonePeUpi = 'pravinsingh231224@ybl';
+  static const String _paytmUpi = 'pravin.3525@ptyes';
+
   final List _avatars = const [
     {'e': '😎', 'bg': 0xFFFFB74D},
     {'e': '👑', 'bg': 0xFFF48FB1},
@@ -41,6 +45,182 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
   ];
 
   bool get isHindi => widget.lang == 'Hindi';
+
+  void _copyUpi(String upiId, String appName) {
+    Clipboard.setData(ClipboardData(text: upiId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isHindi
+            ? '✅ $appName UPI कॉपी हो गया: $upiId'
+            : '✅ $appName UPI Copied: $upiId'),
+      ),
+    );
+  }
+
+  void _openUpiPaymentDialog(String amount, int coinsToAdd) {
+    final utrCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isHindi ? '$amount का UPI पेमेंट करें' : 'Pay $amount via UPI'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isHindi
+                    ? 'नीचे दी गई UPI ID पर $amount भेजें और 12 अंकों का UTR नंबर डालें:'
+                    : 'Send $amount to any UPI ID below and enter 12-digit UTR:',
+                style: const TextStyle(fontSize: 12, color: Colors.black87),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'PhonePe:\n$_phonePeUpi',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _copyUpi(_phonePeUpi, 'PhonePe'),
+                      child: const Text('Copy'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE1F5FE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Paytm:\n$_paytmUpi',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _copyUpi(_paytmUpi, 'Paytm'),
+                      child: const Text('Copy'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: utrCtrl,
+                keyboardType: TextInputType.number,
+                maxLength: 12,
+                decoration: InputDecoration(
+                  labelText: isHindi ? '12 अंकों का UTR / Ref नंबर' : '12-Digit UTR Number',
+                  counterText: '',
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(isHindi ? 'रद्द करें' : 'Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF7A30),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              if (utrCtrl.text.trim().length < 8) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(isHindi
+                        ? '⚠️ कृपया सही UTR नंबर डालें'
+                        : '⚠️ Please enter valid UTR number'),
+                  ),
+                );
+                return;
+              }
+              widget.onCoinsChanged(widget.coins + coinsToAdd);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(isHindi
+                      ? '🎉 पेमेंट सबमिट! +$coinsToAdd कॉइन्स जुड़ गए'
+                      : '🎉 Payment Submitted! +$coinsToAdd Coins added'),
+                ),
+              );
+            },
+            child: Text(isHindi ? 'पेमेंट कन्फ़र्म करें' : 'Confirm Payment'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openRechargeSheet() {
+    final packs = [
+      {'rs': '₹10', 'coins': 100, 'bonus': '+10 Free'},
+      {'rs': '₹50', 'coins': 550, 'bonus': '+50 Free'},
+      {'rs': '₹100', 'coins': 1200, 'bonus': '+200 Free'},
+      {'rs': '₹500', 'coins': 6500, 'bonus': '+1500 Free'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isHindi ? '🪙 कॉइन रिचार्ज (PhonePe / Paytm)' : '🪙 Coin Recharge (UPI)',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            ...packs.map((p) => Card(
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Color(0xFFFFF3E0),
+                      child: Text('🪙', style: TextStyle(fontSize: 20)),
+                    ),
+                    title: Text('${p['coins']} Coins (${p['bonus']})',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Text('PhonePe • Paytm UPI'),
+                    trailing: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5F259F),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _openUpiPaymentDialog(
+                            p['rs'].toString(), p['coins'] as int);
+                      },
+                      child: Text(p['rs'].toString()),
+                    ),
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _openEditName() {
     final ctrl = TextEditingController(text: widget.userName);
@@ -71,72 +251,6 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
             child: Text(isHindi ? 'सेव करें' : 'Save'),
           ),
         ],
-      ),
-    );
-  }
-
-  void _openRechargeSheet() {
-    final packs = [
-      {'rs': '₹10', 'coins': 100, 'bonus': '+10 Free'},
-      {'rs': '₹50', 'coins': 550, 'bonus': '+50 Free'},
-      {'rs': '₹100', 'coins': 1200, 'bonus': '+200 Free'},
-      {'rs': '₹500', 'coins': 6500, 'bonus': '+1500 Free'},
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isHindi ? '🪙 कॉइन रिचार्ज (PhonePe / UPI)' : '🪙 Coin Recharge (PhonePe / UPI)',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              isHindi
-                  ? 'PhonePe, GPay या Paytm से तुरंत कॉइन जोड़ें'
-                  : 'Instant recharge via PhonePe, GPay or Paytm',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 14),
-            ...packs.map((p) => Card(
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFFFFF3E0),
-                      child: Text('🪙', style: TextStyle(fontSize: 20)),
-                    ),
-                    title: Text('${p['coins']} Coins (${p['bonus']})',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('PhonePe • Google Pay • Paytm UPI'),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5F259F),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        final add = p['coins'] as int;
-                        widget.onCoinsChanged(widget.coins + add);
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(isHindi
-                                ? '✅ ${p['rs']} पेमेंट सफल! +$add कॉइन्स जुड़ गए'
-                                : '✅ ${p['rs']} Payment Success! +$add Coins added'),
-                          ),
-                        );
-                      },
-                      child: Text(p['rs'].toString()),
-                    ),
-                  ),
-                )),
-          ],
-        ),
       ),
     );
   }
@@ -172,7 +286,7 @@ class _TokiMeScreenState extends State<TokiMeScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(isHindi
-                      ? '✅ आपकी शिकायत दर्ज हो गई है! टीम जल्द मदद करेगी।'
+                      ? '✅ आपकी शिकायत दर्ज हो गई है!'
                       : '✅ Your complaint has been submitted!'),
                 ),
               );
