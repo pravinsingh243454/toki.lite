@@ -1,10 +1,22 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'auth_screen.dart';
+import 'me_screen.dart';
 
 void main() => runApp(const TokiLiteApp());
 
-class TokiLiteApp extends StatelessWidget {
+class TokiLiteApp extends StatefulWidget {
   const TokiLiteApp({super.key});
+
+  @override
+  State<TokiLiteApp> createState() => _TokiLiteAppState();
+}
+
+class _TokiLiteAppState extends State<TokiLiteApp> {
+  bool _loggedIn = false;
+  String _userName = 'Pravin';
+  String _phone = '9303323525';
+  String _lang = 'Hindi';
 
   @override
   Widget build(BuildContext context) {
@@ -15,13 +27,40 @@ class TokiLiteApp extends StatelessWidget {
         primaryColor: const Color(0xFFFF7A30),
         scaffoldBackgroundColor: const Color(0xFFFCF6F2),
       ),
-      home: const TokiMainShell(),
+      home: _loggedIn
+          ? TokiMainShell(
+              initialName: _userName,
+              phone: _phone,
+              initialLang: _lang,
+              onLogout: () => setState(() => _loggedIn = false),
+            )
+          : AuthScreen(
+              onLoginSuccess: (name, phone, lang) {
+                setState(() {
+                  _userName = name;
+                  _phone = phone;
+                  _lang = lang;
+                  _loggedIn = true;
+                });
+              },
+            ),
     );
   }
 }
 
 class TokiMainShell extends StatefulWidget {
-  const TokiMainShell({super.key});
+  final String initialName;
+  final String phone;
+  final String initialLang;
+  final VoidCallback onLogout;
+
+  const TokiMainShell({
+    super.key,
+    required this.initialName,
+    required this.phone,
+    required this.initialLang,
+    required this.onLogout,
+  });
 
   @override
   State<TokiMainShell> createState() => _TokiMainShellState();
@@ -31,7 +70,8 @@ class _TokiMainShellState extends State<TokiMainShell> {
   int _tab = 0, _homeFilter = 0, _roomFilter = 0, _coins = 500, _avatar = 0;
   bool _searching = false, _bonusClaimed = false;
   String _query = '';
-  final _nameCtrl = TextEditingController(text: 'Pravin');
+  late String _myName;
+  late String _lang;
   final _searchCtrl = TextEditingController();
 
   final List _avatars = const [
@@ -40,12 +80,13 @@ class _TokiMainShellState extends State<TokiMainShell> {
     {'e': '🎧', 'bg': 0xFF90CAF9},
     {'e': '🔥', 'bg': 0xFFFF8A65},
     {'e': '🌸', 'bg': 0xFFCE93D8},
+    {'e': '🦁', 'bg': 0xFFA5D6A7},
   ];
 
   final List _users = const [
-    {'name': 'Riya Sharma', 'age': '22', 'vip': 'VIP5', 'bio': 'Singing & late night gossips 🎶', 'e': '🌸', 'bg': 0xFFF48FB1, 'room': 'welcome everyone 🎶', 'new': false, 'feat': true},
-    {'name': 'Aarav Singh', 'age': '24', 'vip': 'VIP2', 'bio': 'Ludo King champion! Aao khelte hain 🎲', 'e': '🎧', 'bg': 0xFF90CAF9, 'room': 'SB AGENCY 14 🏵️', 'new': true, 'feat': true},
-    {'name': 'Ananya ✨', 'age': '21', 'vip': 'VIP6', 'bio': 'Shayari & dosti party room ❤️', 'e': '👑', 'bg': 0xFFCE93D8, 'room': '🙏 Dwarka Nath ✓✓✓✓', 'new': true, 'feat': false},
+    {'name': 'Riya Sharma', 'vip': 'VIP5', 'bio': 'Singing & late night gossips 🎶', 'e': '🌸', 'bg': 0xFFF48FB1, 'room': 'welcome everyone 🎶', 'new': false, 'feat': true},
+    {'name': 'Aarav Singh', 'vip': 'VIP2', 'bio': 'Ludo King champion! Aao khelte hain 🎲', 'e': '🎧', 'bg': 0xFF90CAF9, 'room': 'SB AGENCY 14 🏵️', 'new': true, 'feat': true},
+    {'name': 'Ananya ✨', 'vip': 'VIP6', 'bio': 'Shayari & dosti party room ❤️', 'e': '👑', 'bg': 0xFFCE93D8, 'room': '🙏 Dwarka Nath ✓✓✓✓', 'new': true, 'feat': false},
   ];
 
   final List _moments = [
@@ -66,14 +107,20 @@ class _TokiMainShellState extends State<TokiMainShell> {
     {'name': 'Toki Official', 'e': '👑', 'msg': 'Welcome to toki.lite! 500 Free Coins mile 🎉', 'time': 'Today'},
   ];
 
-  String get _myName => _nameCtrl.text.trim().isEmpty ? 'Pravin' : _nameCtrl.text.trim();
+  @override
+  void initState() {
+    super.initState();
+    _myName = widget.initialName;
+    _lang = widget.initialLang;
+  }
 
   void _enterRoom(String title) {
+    final av = _avatars[_avatar % _avatars.length];
     Navigator.push(context, MaterialPageRoute(builder: (_) => PartyRoomScreen(
       roomTitle: title,
       userName: _myName,
-      userEmoji: _avatars[_avatar]['e'].toString(),
-      userBg: _avatars[_avatar]['bg'] as int,
+      userEmoji: av['e'].toString(),
+      userBg: av['bg'] as int,
       coins: _coins,
       onCoins: (v) => setState(() => _coins = v),
     )));
@@ -97,6 +144,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
 
   void _postMoment() {
     final c = TextEditingController();
+    final av = _avatars[_avatar % _avatars.length];
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text('🪐 Post New Moment'),
       content: TextField(controller: c, maxLines: 3, decoration: const InputDecoration(hintText: 'Apne dil ki baat likhein...', border: OutlineInputBorder())),
@@ -106,7 +154,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
           onPressed: () {
             if (c.text.trim().isNotEmpty) {
-              setState(() => _moments.insert(0, {'name': _myName, 'e': _avatars[_avatar]['e'], 'bg': _avatars[_avatar]['bg'], 'time': 'Just now', 'tag': '#TokiStar', 'text': c.text.trim(), 'likes': 1, 'liked': true}));
+              setState(() => _moments.insert(0, {'name': _myName, 'e': av['e'], 'bg': av['bg'], 'time': 'Just now', 'tag': '#TokiStar', 'text': c.text.trim(), 'likes': 1, 'liked': true}));
             }
             Navigator.pop(ctx);
           },
@@ -118,6 +166,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
 
   void _createRoom() {
     final c = TextEditingController();
+    final av = _avatars[_avatar % _avatars.length];
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text('🎙️ Create Live Room'),
       content: TextField(controller: c, decoration: const InputDecoration(hintText: 'Room ka naam likhein...', border: OutlineInputBorder())),
@@ -127,7 +176,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
           onPressed: () {
             final t = c.text.trim().isEmpty ? '$_myName\'s Party Room' : c.text.trim();
-            setState(() => _rooms.insert(0, {'title': t, 'sub': 'Host: $_myName • Live Now 🎙️', 'tag': 'Music', 'views': '1', 'e': _avatars[_avatar]['e'], 'c1': 0xFFFFCC80, 'c2': 0xFFFF7A30, 'tc': 0xFFFF7A30, 'cat': 'New', 'mine': true}));
+            setState(() => _rooms.insert(0, {'title': t, 'sub': 'Host: $_myName • Live Now 🎙️', 'tag': 'Music', 'views': '1', 'e': av['e'], 'c1': 0xFFFFCC80, 'c2': 0xFFFF7A30, 'tc': 0xFFFF7A30, 'cat': 'New', 'mine': true}));
             Navigator.pop(ctx);
             _enterRoom(t);
           },
@@ -139,7 +188,24 @@ class _TokiMainShellState extends State<TokiMainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [_homeTab(), _momentsTab(), _roomsTab(), _messagesTab(), _meTab()];
+    final pages = [
+      _homeTab(),
+      _momentsTab(),
+      _roomsTab(),
+      _messagesTab(),
+      TokiMeScreen(
+        userName: _myName,
+        phone: widget.phone,
+        lang: _lang,
+        coins: _coins,
+        selectedAvatar: _avatar,
+        onNameChanged: (n) => setState(() => _myName = n),
+        onAvatarChanged: (idx) => setState(() => _avatar = idx),
+        onCoinsChanged: (c) => setState(() => _coins = c),
+        onLangChanged: (l) => setState(() => _lang = l),
+        onLogout: widget.onLogout,
+      ),
+    ];
     return Scaffold(
       body: SafeArea(child: pages[_tab]),
       bottomNavigationBar: BottomNavigationBar(
@@ -170,7 +236,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
       ),
     );
   }
-    Widget _homeTab() {
+  Widget _homeTab() {
     final list = _users.where((u) => _homeFilter == 1 ? u['new'] == true : (_homeFilter == 2 ? u['feat'] == true : true)).toList();
     return ListView(padding: const EdgeInsets.all(14), children: [
       Row(children: [
@@ -371,29 +437,6 @@ class _TokiMainShellState extends State<TokiMainShell> {
       },
     );
   }
-
-  Widget _meTab() {
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      Center(child: CircleAvatar(radius: 36, backgroundColor: Color(_avatars[_avatar]['bg'] as int), child: Text(_avatars[_avatar]['e'].toString(), style: const TextStyle(fontSize: 34)))),
-      const SizedBox(height: 12),
-      TextField(controller: _nameCtrl, textAlign: TextAlign.center, decoration: const InputDecoration(labelText: 'Your Name', filled: true, fillColor: Colors.white, border: OutlineInputBorder())),
-      const SizedBox(height: 14),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: List.generate(_avatars.length, (i) => GestureDetector(
-        onTap: () => setState(() => _avatar = i),
-        child: CircleAvatar(radius: 22, backgroundColor: Color(_avatars[i]['bg'] as int), child: Text(_avatars[i]['e'].toString(), style: const TextStyle(fontSize: 20))),
-      ))),
-      const SizedBox(height: 18),
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-        child: Row(children: [
-          Text('🪙 My Coins: $_coins', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const Spacer(),
-          ElevatedButton(onPressed: () => setState(() => _coins += 200), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white), child: const Text('+200 Free')),
-        ]),
-      ),
-    ]);
-  }
 }
 
 class PrivateChatScreen extends StatefulWidget {
@@ -570,7 +613,7 @@ class _PartyRoomScreenState extends State<PartyRoomScreen> {
           Expanded(child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             itemCount: _msgs.length,
-                        itemBuilder: (_, i) => Text(_msgs[i], style: const TextStyle(color: Colors.white, fontSize: 12)),
+            itemBuilder: (_, i) => Text(_msgs[i], style: const TextStyle(color: Colors.white, fontSize: 12)),
           )),
           Padding(padding: const EdgeInsets.all(10), child: Row(children: [
             IconButton(onPressed: () => setState(() => _muted = !_muted), icon: Icon(_muted ? Icons.mic_off : Icons.mic, color: _muted ? Colors.redAccent : Colors.greenAccent)),
@@ -584,4 +627,3 @@ class _PartyRoomScreenState extends State<PartyRoomScreen> {
     );
   }
 }
-
