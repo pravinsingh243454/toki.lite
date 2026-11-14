@@ -23,7 +23,7 @@ class TokiHomeTabs extends StatefulWidget {
 }
 
 class _TokiHomeTabsState extends State<TokiHomeTabs> {
-  String _cat = 'All';
+  String _cat = 'All', _mTag = 'All', _postTag = '#Shayari';
   bool _claimed = false;
   final _postCtrl = TextEditingController();
   final _msgCtrl = TextEditingController();
@@ -73,12 +73,62 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
     );
   }
 
-  Widget _buildHome() {
+  void _openComments(DocumentReference postRef, String author) {
+    final cCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 12, right: 12, top: 12),
+        child: SizedBox(
+          height: 360,
+          child: Column(children: [
+            Text('💬 Comments on $author', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const Divider(),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: postRef.collection('comments').orderBy('ts', descending: true).snapshots(),
+                builder: (_, snap) {
+                  if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                  final docs = snap.data!.docs;
+                  if (docs.isEmpty) return const Center(child: Text('Pehla comment karein! ✨'));
+                  return ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (_, i) {
+                      final m = docs[i].data() as Map<String, dynamic>;
+                      return ListTile(dense: true, leading: const Icon(Icons.comment, size: 16), title: Text('${m['user']}: ${m['text']}'));
+                    },
+                  );
+                },
+              ),
+            ),
+            Row(children: [
+              Expanded(child: TextField(controller: cCtrl, decoration: const InputDecoration(hintText: 'Comment likhein...'))),
+              IconButton(
+                icon: const Icon(Icons.send, color: Color(0xFFFF7A30)),
+                onPressed: () async {
+                  if (cCtrl.text.trim().isEmpty) return;
+                  await postRef.collection('comments').add({
+                    'user': widget.userName,
+                    'text': cCtrl.text.trim(),
+                    'ts': FieldValue.serverTimestamp(),
+                  });
+                  cCtrl.clear();
+                },
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+    Widget _buildHome() {
     final users = [
       {'name': 'Riya Sharma', 'age': '21', 'dist': '1.2 km', 'emoji': '🌸', 'bio': 'Music & Late night talks 🎧'},
       {'name': 'Simran Kaur', 'age': '22', 'dist': '2.5 km', 'emoji': '👑', 'bio': 'Shayari aur dosti ❤️'},
       {'name': 'Ananya Verma', 'age': '20', 'dist': '3.0 km', 'emoji': '🦋', 'bio': 'Let us voice match! ⚡'},
       {'name': 'Kabir Singh', 'age': '23', 'dist': '1.8 km', 'emoji': '🦁', 'bio': 'Cricket & Party Rooms 🔥'},
+      {'name': 'Priya Patel', 'age': '21', 'dist': '0.9 km', 'emoji': '🌹', 'bio': 'New on Toki, say hi! ✨'},
     ];
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -114,23 +164,17 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
             subtitle: const Text('Roz +50 Free Coins paayein!', style: TextStyle(color: Colors.white70, fontSize: 12)),
             trailing: ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: _claimed ? Colors.grey : Colors.amber, foregroundColor: Colors.black),
-              onPressed: _claimed ? null : () {
-                setState(() => _claimed = true);
-                widget.onCoins(widget.coins + 50);
-              },
+              onPressed: _claimed ? null : () { setState(() => _claimed = true); widget.onCoins(widget.coins + 50); },
               child: Text(_claimed ? 'Claimed ✅' : '+50 🪙'),
             ),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text('🔥 Nearby Active Users', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ),
+        const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('🔥 Nearby Active Users', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
         ...users.map((u) => Card(
           margin: const EdgeInsets.only(bottom: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           child: ListTile(
-            leading: CircleAvatar(radius: 24, backgroundColor: const Color(0xFFFF7A30).withOpacity(0.15), child: Text(u['emoji']!, style: const TextStyle(fontSize: 24))),
+            leading: CircleAvatar(radius: 24, backgroundColor: const Color(0xFFFF7A30).withOpacity(0.15), child: Text(u['emoji']!, style: const TextStyle(fontSize: 22))),
             title: Text('${u['name']}, ${u['age']} 🟢', style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text('${u['dist']} away • ${u['bio']}'),
             trailing: ElevatedButton(
@@ -143,97 +187,57 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
       ],
     );
   }
-    Widget _buildRooms() {
-    final defaultRooms = [
-      {'title': '🔥 Desi Adda & Shayari Night', 'host': 'Riya 🌸', 'cat': 'Chat', 'users': 142},
-      {'title': '🎵 Non-Stop Bollywood Lofi', 'host': 'Aarav 🎧', 'cat': 'Music', 'users': 89},
-      {'title': '❤️ Dil Se Dil Tak (Dating)', 'host': 'Simran 👑', 'cat': 'Dating', 'users': 210},
-    ];
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFFF7A30),
-        foregroundColor: Colors.white,
-        onPressed: _createRoomDialog,
-        icon: const Icon(Icons.mic),
-        label: const Text('Create Room'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['All', 'Chat', 'Music', 'Dating'].map((c) => ChoiceChip(
-              label: Text(c),
-              selected: _cat == c,
-              selectedColor: const Color(0xFFFF7A30),
-              labelStyle: TextStyle(color: _cat == c ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
-              onSelected: (_) => setState(() => _cat = c),
-            )).toList(),
-          ),
-          const SizedBox(height: 8),
-          ...defaultRooms.where((r) => _cat == 'All' || r['cat'] == _cat).map((r) => Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: ListTile(
-              leading: const CircleAvatar(backgroundColor: Color(0xFF1E1E2C), child: Text('🎙️')),
-              title: Text(r['title'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              subtitle: Text('Host: ${r['host']} • ${r['cat']}'),
-              trailing: Text('🟢 ${r['users']}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              onTap: () => _openRoom(r['title'].toString()),
-            ),
-          )),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('rooms').snapshots(),
-            builder: (context, snap) {
-              if (!snap.hasData) return const SizedBox();
-              return Column(
-                children: snap.data!.docs.map((d) {
-                  final m = d.data() as Map<String, dynamic>;
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      leading: const CircleAvatar(backgroundColor: Color(0xFFFF7A30), child: Text('🔥')),
-                      title: Text((m['title'] ?? 'Live Room').toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('Host: ${m['host']} • Live Now'),
-                      trailing: const Text('🟢 Join', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                      onTap: () => _openRoom((m['title'] ?? 'Live Room').toString()),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMoments() {
+    final sampleMoments = [
+      {'user': 'Riya 🌸', 'emoji': '🌸', 'tag': '#Shayari', 'text': 'Dil ki baat zubaan par aane lagi hai, ab toh raaton mein bhi neend udne lagi hai ✨❤️', 'likes': 48, 'gifts': 5},
+      {'user': 'Aarav 🎧', 'emoji': '🎧', 'tag': '#Party', 'text': 'Aaj raat 10 baje mere Live Voice Room mein sabka swagat hai! Full masti aur gaane 🎙️🔥', 'likes': 92, 'gifts': 12},
+      {'user': 'Simran 👑', 'emoji': '👑', 'tag': '#Love', 'text': 'Koi aisa ho jo bina kahe dil ki har baat samajh le... 💫🌹', 'likes': 134, 'gifts': 19},
+    ];
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(children: [
-          Expanded(
-            child: TextField(
-              controller: _postCtrl,
-              decoration: InputDecoration(hintText: 'Apni shayari ya status post karein...', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)),
+        padding: const EdgeInsets.all(8),
+        child: Column(children: [
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _postCtrl,
+                decoration: InputDecoration(hintText: 'Apni shayari ya status likhein...', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
-            onPressed: () async {
-              if (_postCtrl.text.trim().isEmpty) return;
-              await FirebaseFirestore.instance.collection('moments').add({
-                'user': widget.userName,
-                'emoji': widget.userEmoji,
-                'text': _postCtrl.text.trim(),
-                'likes': 1,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
-              _postCtrl.clear();
-            },
-            child: const Text('Post'),
+            const SizedBox(width: 6),
+            DropdownButton<String>(
+              value: _postTag,
+              items: ['#Shayari', '#Love', '#Party'].map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 12)))).toList(),
+              onChanged: (v) => setState(() => _postTag = v ?? '#Shayari'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF7A30), foregroundColor: Colors.white),
+              onPressed: () async {
+                if (_postCtrl.text.trim().isEmpty) return;
+                await FirebaseFirestore.instance.collection('moments').add({
+                  'user': widget.userName,
+                  'emoji': widget.userEmoji,
+                  'text': _postCtrl.text.trim(),
+                  'tag': _postTag,
+                  'likes': 1,
+                  'gifts': 0,
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+                _postCtrl.clear();
+              },
+              child: const Text('Post'),
+            ),
+          ]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: ['All', '#Shayari', '#Love', '#Party'].map((t) => ChoiceChip(
+              label: Text(t, style: const TextStyle(fontSize: 11)),
+              selected: _mTag == t,
+              selectedColor: const Color(0xFFFF7A30),
+              labelStyle: TextStyle(color: _mTag == t ? Colors.white : Colors.black87),
+              onSelected: (_) => setState(() => _mTag = t),
+            )).toList(),
           ),
         ]),
       ),
@@ -241,91 +245,68 @@ class _TokiHomeTabsState extends State<TokiHomeTabs> {
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('moments').snapshots(),
           builder: (context, snap) {
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            final docs = snap.data!.docs;
-            if (docs.isEmpty) return const Center(child: Text('Pehla Moment post karein! ✨'));
-            return ListView.builder(
+            final liveDocs = snap.hasData ? snap.data!.docs : [];
+            return ListView(
               padding: const EdgeInsets.all(10),
-              itemCount: docs.length,
-              itemBuilder: (_, i) {
-                final d = docs[i];
-                final m = d.data() as Map<String, dynamic>;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: CircleAvatar(child: Text((m['emoji'] ?? '😎').toString())),
-                    title: Text((m['user'] ?? 'User').toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text((m['text'] ?? '').toString()),
-                    trailing: TextButton.icon(
-                      onPressed: () => d.reference.update({'likes': FieldValue.increment(1)}),
-                      icon: const Icon(Icons.favorite, color: Colors.red, size: 18),
-                      label: Text('${m['likes'] ?? 0}'),
+              children: [
+                ...liveDocs.map((d) {
+                  final m = d.data() as Map<String, dynamic>;
+                  if (_mTag != 'All' && (m['tag'] ?? '#Shayari') != _mTag) return const SizedBox();
+                  final user = (m['user'] ?? 'User').toString();
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          CircleAvatar(child: Text((m['emoji'] ?? '😎').toString())),
+                          const SizedBox(width: 8),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(user, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text((m['tag'] ?? '#Shayari').toString(), style: const TextStyle(color: Color(0xFFFF7A30), fontSize: 11)),
+                          ])),
+                          OutlinedButton(onPressed: () => _openRoom('💬 Chat with $user'), child: const Text('Say Hi 👋', style: TextStyle(fontSize: 11))),
+                        ]),
+                        Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text((m['text'] ?? '').toString(), style: const TextStyle(fontSize: 14))),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                          TextButton.icon(onPressed: () => d.reference.update({'likes': FieldValue.increment(1)}), icon: const Icon(Icons.favorite, color: Colors.red, size: 18), label: Text('${m['likes'] ?? 0}')),
+                          TextButton.icon(onPressed: () => _openComments(d.reference, user), icon: const Icon(Icons.chat_bubble_outline, size: 18), label: const Text('Comment')),
+                          TextButton.icon(onPressed: () { if (widget.coins >= 10) { widget.onCoins(widget.coins - 10); d.reference.update({'gifts': FieldValue.increment(1)}); } }, icon: const Text('🌹', style: TextStyle(fontSize: 16)), label: Text('${m['gifts'] ?? 0}')),
+                        ]),
+                      ]),
                     ),
+                  );
+                }),
+                ...sampleMoments.where((s) => _mTag == 'All' || s['tag'] == _mTag).map((s) => Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        CircleAvatar(child: Text(s['emoji'].toString())),
+                        const SizedBox(width: 8),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(s['user'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(s['tag'].toString(), style: const TextStyle(color: Color(0xFFFF7A30), fontSize: 11)),
+                        ])),
+                        OutlinedButton(onPressed: () => _openRoom('💬 Chat with ${s['user']}'), child: const Text('Say Hi 👋', style: TextStyle(fontSize: 11))),
+                      ]),
+                      Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(s['text'].toString(), style: const TextStyle(fontSize: 14))),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                        TextButton.icon(onPressed: () {}, icon: const Icon(Icons.favorite, color: Colors.red, size: 18), label: Text('${s['likes']}')),
+                        TextButton.icon(onPressed: () => _openRoom('💬 Chat with ${s['user']}'), icon: const Icon(Icons.chat_bubble_outline, size: 18), label: const Text('Reply')),
+                        TextButton.icon(onPressed: () { if (widget.coins >= 10) widget.onCoins(widget.coins - 10); }, icon: const Text('🌹', style: TextStyle(fontSize: 16)), label: Text('${s['gifts']}')),
+                      ]),
+                    ]),
                   ),
-                );
-              },
+                )),
+              ],
             );
           },
         ),
       ),
     ]);
   }
-
-  Widget _buildMessages() {
-    return Column(children: [
-      Expanded(
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('private_chats').orderBy('ts', descending: true).limit(30).snapshots(),
-          builder: (context, snap) {
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-            final docs = snap.data!.docs;
-            if (docs.isEmpty) return const Center(child: Text('💬 Apne doston ko pehla message bhejein!'));
-            return ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.all(12),
-              itemCount: docs.length,
-              itemBuilder: (_, i) {
-                final m = docs[i].data() as Map<String, dynamic>;
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(child: Text((m['emoji'] ?? '😎').toString())),
-                    title: Text((m['user'] ?? 'User').toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    subtitle: Text((m['text'] ?? '').toString()),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.all(8),
-        child: Row(children: [
-          Expanded(child: TextField(controller: _msgCtrl, decoration: const InputDecoration(hintText: 'Message likhein...', border: OutlineInputBorder()))),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFFFF7A30)),
-            onPressed: () async {
-              if (_msgCtrl.text.trim().isEmpty) return;
-              await FirebaseFirestore.instance.collection('private_chats').add({
-                'user': widget.userName,
-                'emoji': widget.userEmoji,
-                'text': _msgCtrl.text.trim(),
-                'ts': FieldValue.serverTimestamp(),
-              });
-              _msgCtrl.clear();
-            },
-          ),
-        ]),
-      ),
-    ]);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.tabIndex == 1) return _buildMoments();
-    if (widget.tabIndex == 2) return _buildRooms();
-    if (widget.tabIndex == 3) return _buildMessages();
-    return _buildHome();
-  }
-}
+  
