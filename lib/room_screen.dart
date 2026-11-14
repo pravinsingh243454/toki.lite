@@ -1,18 +1,21 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 class PartyRoomScreen extends StatefulWidget {
-  final String roomId;
+  final String roomTitle;
   final String userName;
   final String userEmoji;
   final int userBg;
+  final int coins;
+  final Function(int newCoins) onCoins;
 
   const PartyRoomScreen({
     super.key,
-    required this.roomId,
+    required this.roomTitle,
     required this.userName,
     required this.userEmoji,
     required this.userBg,
+    required this.coins,
+    required this.onCoins,
   });
 
   @override
@@ -20,327 +23,213 @@ class PartyRoomScreen extends StatefulWidget {
 }
 
 class _PartyRoomScreenState extends State<PartyRoomScreen> {
+  late int _coins;
+  bool _micOn = true;
   int _mySeat = 0;
-  bool _muted = false;
-  bool _locked = false;
-  int _themeIdx = 0;
-  int _coins = 500;
-  int _dice = 1;
-  int _p1 = 0;
-  int _p2 = 0;
-  final TextEditingController _chatCtrl = TextEditingController();
-
-  final List _themes = const [
-    [0xFF1E1B4B, 0xFF4B39EF],
-    [0xFF3B0764, 0xFFDB2777],
-    [0xFF064E3B, 0xFF0D9488],
+  final _msgCtrl = TextEditingController();
+  final List> _msgs = [
+    {'user': 'System', 'text': '🎉 Party Room mein aapka swagat hai!'},
   ];
 
-  final List _seats = [
-    {'name': 'Riya (Host)', 'emoji': '🌸', 'bg': 0xFFF48FB1, 'taken': true},
-    {'name': 'Seat 2', 'emoji': '🎙️', 'bg': 0xFF334155, 'taken': false},
-    {'name': 'Aarav', 'emoji': '🎧', 'bg': 0xFF90CAF9, 'taken': true},
-    {'name': 'Seat 4', 'emoji': '🎙️', 'bg': 0xFF334155, 'taken': false},
-    {'name': 'Seat 5', 'emoji': '🎙️', 'bg': 0xFF334155, 'taken': false},
-    {'name': 'Ananya', 'emoji': '👑', 'bg': 0xFFCE93D8, 'taken': true},
-    {'name': 'Seat 7', 'emoji': '🎙️', 'bg': 0xFF334155, 'taken': false},
-    {'name': 'Seat 8', 'emoji': '🎙️', 'bg': 0xFF334155, 'taken': false},
-    {'name': 'Seat 9', 'emoji': '🎙️', 'bg': 0xFF334155, 'taken': false},
+  final List> _seats = [
+    {'name': 'Host', 'e': '👑', 'bg': 0xFFFFB74D},
+    {'name': 'Riya', 'e': '🌸', 'bg': 0xFFF48FB1},
+    {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
+    {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
+    {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
+    {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
+    {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
+    {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
+    {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344},
   ];
 
-  final List _roomMsgs = [
-    '🎉 Welcome to Toki Live Voice Party!',
-    '🌸 Riya (Host): Sabhi doston ka swagat hai!',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _coins = widget.coins;
+    _seats[0] = {
+      'name': widget.userName,
+      'e': widget.userEmoji,
+      'bg': widget.userBg,
+    };
+  }
 
-  void _tapSeat(int idx) {
-    if (_locked && _mySeat != idx) {
+  void _takeSeat(int idx) {
+    setState(() {
+      if (_mySeat != -1) {
+        _seats[_mySeat] = {'name': 'Empty', 'e': '🎙️', 'bg': 0xFF333344};
+      }
+      _mySeat = idx;
+      _seats[idx] = {
+        'name': widget.userName,
+        'e': widget.userEmoji,
+        'bg': widget.userBg,
+      };
+    });
+  }
+
+  void _sendMsg() {
+    final t = _msgCtrl.text.trim();
+    if (t.isEmpty) return;
+    _msgCtrl.clear();
+    setState(() => _msgs.add({'user': widget.userName, 'text': t}));
+  }
+
+  void _sendGift(String giftName, int cost) {
+    if (_coins < cost) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🔒 Room abhi lock hai')),
+        const SnackBar(content: Text('⚠️ Coins kam hain! Me tab se recharge karein')),
       );
       return;
     }
     setState(() {
-      if (_mySeat == idx) {
-        _seats[idx] = {
-          'name': 'Seat ${idx + 1}',
-          'emoji': '🎙️',
-          'bg': 0xFF334155,
-          'taken': false,
-        };
-        _mySeat = -1;
-      } else if (_seats[idx]['taken'] == false) {
-        if (_mySeat >= 0) {
-          _seats[_mySeat] = {
-            'name': 'Seat ${_mySeat + 1}',
-            'emoji': '🎙️',
-            'bg': 0xFF334155,
-            'taken': false,
-          };
-        }
-        _seats[idx] = {
-          'name': widget.userName,
-          'emoji': widget.userEmoji,
-          'bg': widget.userBg,
-          'taken': true,
-        };
-        _mySeat = idx;
-      }
-    });
-  }
-
-  void _rollLudo() {
-    final r = Random().nextInt(6) + 1;
-    final bot = Random().nextInt(6) + 1;
-    setState(() {
-      _dice = r;
-      _p1 = (_p1 + r).clamp(0, 30);
-      _p2 = (_p2 + bot).clamp(0, 30);
-      _roomMsgs.add('🎲 ${widget.userName} rolled $r (Pos: $_p1/30)');
-      if (_p1 >= 30) {
-        _coins += 100;
-        _roomMsgs.add('🏆 ${widget.userName} won Ludo Race! +100 Coins');
-        _p1 = 0;
-        _p2 = 0;
-      }
-    });
-  }
-
-  void _sendGift(String gift, int cost) {
-    if (_coins < cost) return;
-    setState(() {
       _coins -= cost;
-      _roomMsgs.add('🎁 ${widget.userName} ne $gift bheja! (-$cost 🪙)');
+      _msgs.add({'user': widget.userName, 'text': '🎁 Sent $giftName (-$cost 🪙)'});
     });
+    widget.onCoins(_coins);
+    Navigator.pop(context);
   }
 
-  void _sendChat() {
-    final t = _chatCtrl.text.trim();
-    if (t.isEmpty) return;
-    _chatCtrl.clear();
-    setState(() {
-      _roomMsgs.add('${widget.userName}: $t');
-    });
-  }
-
-  @override
-  void dispose() {
-    _chatCtrl.dispose();
-    super.dispose();
+  void _openGifts() {
+    final gifts = [
+      {'name': '🌹 Rose', 'cost': 10},
+      {'name': '🎂 Cake', 'cost': 50},
+      {'name': '🏎️ Sports Car', 'cost': 200},
+      {'name': '👑 Royal Crown', 'cost': 500},
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E2C),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🎁 Send Gift (🪙 $_coins)',
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: gifts.map((g) => GestureDetector(
+                onTap: () => _sendGift(g['name'].toString(), g['cost'] as int),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(children: [
+                    Text(g['name'].toString(), style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text('🪙 ${g['cost']}', style: const TextStyle(color: Colors.amber, fontSize: 12)),
+                  ]),
+                ),
+              )).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = _themes[_themeIdx] as List;
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(colors[0] as int), Color(colors[1] as int)],
+      backgroundColor: const Color(0xFF141422),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E1E2C),
+        foregroundColor: Colors.white,
+        title: Text(widget.roomTitle, style: const TextStyle(fontSize: 16)),
+        actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text('🪙 $_coins', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
+        ],
+      ),
+      body: Column(
+        children: [
+          GridView.builder(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(14),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 1.05,
+            ),
+            itemCount: 9,
+            itemBuilder: (_, i) {
+              final s = _seats[i];
+              return GestureDetector(
+                onTap: () => _takeSeat(i),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: Color(s['bg'] as int),
+                      child: Text(s['e'].toString(), style: const TextStyle(fontSize: 22)),
                     ),
-                    Expanded(
-                      child: Text('🎙️ ${widget.roomId}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black26,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text('🪙 $_coins',
-                          style: const TextStyle(
-                              color: Colors.amber,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                    IconButton(
-                      onPressed: () => setState(
-                          () => _themeIdx = (_themeIdx + 1) % _themes.length),
-                      icon: const Icon(Icons.palette, color: Colors.white),
-                    ),
-                    IconButton(
-                      onPressed: () => setState(() => _locked = !_locked),
-                      icon: Icon(_locked ? Icons.lock : Icons.lock_open,
-                          color: Colors.white),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${i + 1}. ${s['name']}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                   ],
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _seats.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.15,
-                  ),
-                  itemBuilder: (_, idx) {
-                    final s = _seats[idx];
-                    final isMe = _mySeat == idx;
-                    return GestureDetector(
-                      onTap: () => _tapSeat(idx),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white12,
-                          borderRadius: BorderRadius.circular(14),
-                          border: isMe
-                              ? Border.all(color: Colors.amber, width: 2)
-                              : null,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: Color(s['bg'] as int),
-                              child: Text(s['emoji'].toString(),
-                                  style: const TextStyle(fontSize: 20)),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              s['name'].toString(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+              );
+            },
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              itemCount: _msgs.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  '${_msgs[i]['user']}: ${_msgs[i]['text']}',
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
-              Container(
-                margin: const EdgeInsets.fromLTRB(14, 8, 14, 6),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            color: const Color(0xFF1E1E2C),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => setState(() => _micOn = !_micOn),
+                  icon: Icon(_micOn ? Icons.mic : Icons.mic_off,
+                      color: _micOn ? Colors.greenAccent : Colors.redAccent),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('🎲 Toki Ludo Race (30 Steps)',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text('You: $_p1/30   •   Riya: $_p2/30',
-                              style: const TextStyle(
-                                  color: Colors.amberAccent, fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _rollLudo,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF7A30),
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text('Roll ($_dice)'),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  itemCount: _roomMsgs.length,
-                  itemBuilder: (_, idx) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black26,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(_roomMsgs[idx].toString(),
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 12)),
+                Expanded(
+                  child: TextField(
+                    controller: _msgCtrl,
+                    style: const TextStyle(color: Colors.white),
+                    onSubmitted: (_) => _sendMsg(),
+                    decoration: const InputDecoration(
+                      hintText: 'Say hi...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      border: InputBorder.none,
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => setState(() => _muted = !_muted),
-                      icon: Icon(_muted ? Icons.mic_off : Icons.mic,
-                          color: _muted ? Colors.redAccent : Colors.greenAccent),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _chatCtrl,
-                        style: const TextStyle(color: Colors.white),
-                        onSubmitted: (_) => _sendChat(),
-                        decoration: InputDecoration(
-                          hintText: 'Say something...',
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          filled: true,
-                          fillColor: Colors.white12,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _sendChat,
-                      icon: const Icon(Icons.send, color: Colors.white),
-                    ),
-                    GestureDetector(
-                      onTap: () => _sendGift('🌹 Rose', 20),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Text('🌹', style: TextStyle(fontSize: 22)),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _sendGift('👑 Crown', 100),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Text('👑', style: TextStyle(fontSize: 22)),
-                      ),
-                    ),
-                  ],
+                IconButton(
+                  onPressed: _openGifts,
+                  icon: const Icon(Icons.card_giftcard, color: Colors.amber),
                 ),
-              ),
-            ],
+                IconButton(
+                  onPressed: _sendMsg,
+                  icon: const Icon(Icons.send, color: Color(0xFFFF7A30)),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
