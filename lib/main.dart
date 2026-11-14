@@ -141,7 +141,7 @@ class _TokiMainShellState extends State<TokiMainShell> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => PrivateChatScreen(
       peerName: name,
       peerEmoji: emoji,
-      onJoinRoom: () { Navigator.pop(context); _enterRoom(room); },
+      onJoinVoiceRoom: () { Navigator.pop(context); _enterRoom(room); },
     )));
   }
 
